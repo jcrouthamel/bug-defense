@@ -87,11 +87,14 @@ class TierProgressionUI: SKNode {
     }
 
     private func setupUI() {
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+
         // Semi-transparent background
         let background = SKShapeNode(rectOf: size)
         background.fillColor = SKColor.black.withAlphaComponent(0.85)
         background.strokeColor = .clear
-        background.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        background.position = CGPoint(x: 0, y: 0)
         addChild(background)
 
         // Title
@@ -99,7 +102,7 @@ class TierProgressionUI: SKNode {
         title.text = "🏆 TIER PROGRESSION 🏆"
         title.fontSize = 32
         title.fontColor = .yellow
-        title.position = CGPoint(x: size.width / 2, y: size.height - 60)
+        title.position = CGPoint(x: 0, y: halfHeight - 60)
         addChild(title)
 
         // Current tier info
@@ -108,7 +111,7 @@ class TierProgressionUI: SKNode {
         tierInfo.text = "Currently in: \(currentTier.icon) \(currentTier.name) (Waves \(currentTier.waveRange.lowerBound)-\(currentTier.waveRange.upperBound))"
         tierInfo.fontSize = 18
         tierInfo.fontColor = .white
-        tierInfo.position = CGPoint(x: size.width / 2, y: size.height - 100)
+        tierInfo.position = CGPoint(x: 0, y: halfHeight - 100)
         addChild(tierInfo)
 
         // Draw tier progression road
@@ -120,7 +123,7 @@ class TierProgressionUI: SKNode {
             size: CGSize(width: 120, height: 50),
             color: .green
         )
-        closeButton.position = CGPoint(x: size.width / 2, y: 60)
+        closeButton.position = CGPoint(x: 0, y: -halfHeight + 60)
         closeButton.onTap = { [weak self] in
             self?.onClose()
         }
@@ -130,10 +133,12 @@ class TierProgressionUI: SKNode {
     }
 
     private func drawTierRoad() {
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
         let tiers = TierProgressionManager.shared.tiers
-        let roadStartY: CGFloat = size.height - 180
+        let roadStartY: CGFloat = halfHeight - 180
         let houseSpacing: CGFloat = 160
-        let startX: CGFloat = 100
+        let startX: CGFloat = -halfWidth + 100
 
         // Draw road (horizontal path)
         for i in 0..<(tiers.count - 1) {

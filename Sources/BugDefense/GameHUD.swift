@@ -171,9 +171,10 @@ class GameHUD: SKNode {
         addChild(waveLabel)
         addChild(buildTimerLabel)
 
-        // Position top menu buttons with uniform spacing (camera-relative)
+        // Position top menu buttons with uniform spacing (camera-relative, shifted left)
         let buttonSpacing: CGFloat = 120  // 110 width + 10 gap
-        let rightEdge = halfWidth - 55  // Half of button width from camera center
+        let leftShift: CGFloat = 80  // Shift all buttons to the left
+        let rightEdge = halfWidth - 55 - leftShift  // Half of button width from camera center
 
         gameControlsDropdown.position = CGPoint(x: rightEdge, y: halfHeight - 30)
         upgradeButton.position = CGPoint(x: rightEdge - buttonSpacing, y: halfHeight - 30)
@@ -191,14 +192,14 @@ class GameHUD: SKNode {
         addChild(tierProgressButton)
         addChild(heroControlButton)
 
-        // Create toggle button for top menu (camera-relative)
+        // Create toggle button for top menu (camera-relative, shifted left)
         topMenuToggleButton = Button(
             text: "📋",
             size: CGSize(width: 50, height: 50),
             color: .systemGreen
         )
         topMenuToggleButton.position = CGPoint(
-            x: halfWidth - 30,
+            x: halfWidth - 30 - leftShift,
             y: halfHeight - 30
         )
         topMenuToggleButton.onTap = { [weak self] in
@@ -221,15 +222,16 @@ class GameHUD: SKNode {
         // Camera-relative positioning
         let halfWidth = screenSize.width / 2
         let halfHeight = screenSize.height / 2
+        let leftShift: CGFloat = 80  // Shift tower panel to the left
 
-        // Create toggle button for tower panel (camera-relative)
+        // Create toggle button for tower panel (camera-relative, shifted left)
         towerPanelToggleButton = Button(
             text: "🏗️",
             size: CGSize(width: 50, height: 50),
             color: .blue
         )
         towerPanelToggleButton.position = CGPoint(
-            x: halfWidth - 30,
+            x: halfWidth - 30 - leftShift,
             y: -halfHeight + 30
         )
         towerPanelToggleButton.onTap = { [weak self] in
@@ -249,8 +251,8 @@ class GameHUD: SKNode {
         let buttonSpacing: CGFloat = 5
         let buttonsPerColumn = 4
 
-        // Position from bottom right (camera-relative)
-        let startX = halfWidth - 85
+        // Position from bottom right (camera-relative, shifted left)
+        let startX = halfWidth - 85 - leftShift
         let startY: CGFloat = -halfHeight + 90
 
         for (index, type) in towerTypes.enumerated() {

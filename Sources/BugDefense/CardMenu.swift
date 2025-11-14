@@ -28,15 +28,17 @@ class CardMenu: SKNode {
         self.background = SKShapeNode(rectOf: size)
         self.background.fillColor = SKColor.black.withAlphaComponent(0.9)
         self.background.strokeColor = .clear
-        self.background.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        self.background.position = CGPoint(x: 0, y: 0)
 
         // Create close button
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
         self.closeButton = Button(
             text: "✕ Close",
             size: CGSize(width: 100, height: 45),
             color: .red
         )
-        self.closeButton.position = CGPoint(x: size.width - 60, y: size.height - 35)
+        self.closeButton.position = CGPoint(x: halfWidth - 60, y: halfHeight - 35)
 
         super.init()
 
@@ -85,12 +87,15 @@ class CardMenu: SKNode {
     #endif
 
     private func setupCardMenu(size: CGSize) {
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+
         // Title
         let title = SKLabelNode(fontNamed: "Helvetica-Bold")
         title.text = "🎴 CARD SYSTEM 🎴"
         title.fontSize = 32
         title.fontColor = .orange
-        title.position = CGPoint(x: size.width / 2, y: size.height - 80)
+        title.position = CGPoint(x: 0, y: halfHeight - 80)
         addChild(title)
 
         // Subtitle
@@ -98,7 +103,7 @@ class CardMenu: SKNode {
         subtitle.text = "Equip cards for bonuses (unlocked from boss waves)"
         subtitle.fontSize = 14
         subtitle.fontColor = .lightGray
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 105)
+        subtitle.position = CGPoint(x: 0, y: halfHeight - 105)
         addChild(subtitle)
 
         // Slot section title
@@ -107,13 +112,13 @@ class CardMenu: SKNode {
         slotTitle.fontSize = 24
         slotTitle.fontColor = .cyan
         slotTitle.horizontalAlignmentMode = .left
-        slotTitle.position = CGPoint(x: 50, y: size.height - 140)
+        slotTitle.position = CGPoint(x: -halfWidth + 50, y: halfHeight - 140)
         addChild(slotTitle)
 
         // Draw card slots
-        let slotY = size.height - 200
+        let slotY = halfHeight - 200
         let slotSpacing: CGFloat = 140
-        let startX: CGFloat = 80
+        let startX: CGFloat = -halfWidth + 80
 
         for i in 0..<GameConfiguration.cardSlotsCount {
             let slotView = CardSlotView(
@@ -139,7 +144,7 @@ class CardMenu: SKNode {
         collectionTitle.fontSize = 24
         collectionTitle.fontColor = .cyan
         collectionTitle.horizontalAlignmentMode = .left
-        collectionTitle.position = CGPoint(x: 50, y: size.height - 340)
+        collectionTitle.position = CGPoint(x: -halfWidth + 50, y: halfHeight - 340)
         addChild(collectionTitle)
 
         // Draw collected cards list
@@ -147,6 +152,9 @@ class CardMenu: SKNode {
     }
 
     private func drawCardsList(size: CGSize) {
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+
         // Remove existing card list views
         for view in cardListViews {
             view.removeFromParent()
@@ -157,8 +165,8 @@ class CardMenu: SKNode {
         let cardWidth: CGFloat = 250
         let cardHeight: CGFloat = 80
         let cardSpacing: CGFloat = 10
-        let startY = size.height - 400
-        let startX: CGFloat = 80
+        let startY = halfHeight - 400
+        let startX: CGFloat = -halfWidth + 80
 
         let cardsPerRow = 3
         for (index, card) in cards.enumerated() {
@@ -186,7 +194,7 @@ class CardMenu: SKNode {
             noCardsLabel.text = "No cards collected yet. Defeat boss waves to earn cards!"
             noCardsLabel.fontSize = 18
             noCardsLabel.fontColor = .gray
-            noCardsLabel.position = CGPoint(x: size.width / 2, y: startY - 40)
+            noCardsLabel.position = CGPoint(x: 0, y: startY - 40)
             addChild(noCardsLabel)
         }
     }

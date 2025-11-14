@@ -23,19 +23,21 @@ class UpgradeMenu: SKNode {
         self.upgradeManager = upgradeManager
         self.onClose = onClose
 
-        // Create semi-transparent background
+        // Create semi-transparent background (camera-relative, centered at 0,0)
         self.background = SKShapeNode(rectOf: size)
         self.background.fillColor = SKColor.black.withAlphaComponent(0.8)
         self.background.strokeColor = .clear
-        self.background.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        self.background.position = CGPoint(x: 0, y: 0)
 
-        // Create close button
+        // Create close button (camera-relative)
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
         self.closeButton = Button(
             text: "✕ Close",
             size: CGSize(width: 100, height: 45),
             color: .red
         )
-        self.closeButton.position = CGPoint(x: size.width - 60, y: size.height - 35)
+        self.closeButton.position = CGPoint(x: halfWidth - 60, y: halfHeight - 35)
 
         super.init()
 

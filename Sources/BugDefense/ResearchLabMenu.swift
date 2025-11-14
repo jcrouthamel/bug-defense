@@ -23,15 +23,17 @@ class ResearchLabMenu: SKNode {
         self.background = SKShapeNode(rectOf: size)
         self.background.fillColor = SKColor.black.withAlphaComponent(0.85)
         self.background.strokeColor = .clear
-        self.background.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        self.background.position = CGPoint(x: 0, y: 0)
 
         // Create close button
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
         self.closeButton = Button(
             text: "✕ Close",
             size: CGSize(width: 100, height: 45),
             color: .red
         )
-        self.closeButton.position = CGPoint(x: size.width - 60, y: size.height - 35)
+        self.closeButton.position = CGPoint(x: halfWidth - 60, y: halfHeight - 35)
 
         super.init()
 
@@ -53,12 +55,15 @@ class ResearchLabMenu: SKNode {
     }
 
     private func setupResearchMenu(size: CGSize) {
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+
         // Title
         let title = SKLabelNode(fontNamed: "Helvetica-Bold")
         title.text = "🔬 RESEARCH LAB 🔬"
         title.fontSize = 32
         title.fontColor = .cyan
-        title.position = CGPoint(x: size.width / 2, y: size.height - 80)
+        title.position = CGPoint(x: 0, y: halfHeight - 80)
         addChild(title)
 
         // Subtitle
@@ -66,7 +71,7 @@ class ResearchLabMenu: SKNode {
         subtitle.text = "Permanent upgrades using Research Coins"
         subtitle.fontSize = 14
         subtitle.fontColor = .lightGray
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 105)
+        subtitle.position = CGPoint(x: 0, y: halfHeight - 105)
         addChild(subtitle)
 
         // Coins display
@@ -74,7 +79,7 @@ class ResearchLabMenu: SKNode {
         coinsLabel.text = "🪙 \(researchLab.totalCoins) Coins"
         coinsLabel.fontSize = 20
         coinsLabel.fontColor = .yellow
-        coinsLabel.position = CGPoint(x: size.width / 2, y: size.height - 135)
+        coinsLabel.position = CGPoint(x: 0, y: halfHeight - 135)
         coinsLabel.name = "coinsLabel"
         addChild(coinsLabel)
 
@@ -90,10 +95,10 @@ class ResearchLabMenu: SKNode {
         let buttonHeight: CGFloat = 90
         let buttonSpacing: CGFloat = 10
         let columnSpacing: CGFloat = 30
-        let startY = size.height - 180
+        let startY = halfHeight - 180
 
-        let leftColumnX = size.width / 2 - columnSpacing / 2 - buttonWidth / 2
-        let rightColumnX = size.width / 2 + columnSpacing / 2 + buttonWidth / 2
+        let leftColumnX = -columnSpacing / 2 - buttonWidth / 2
+        let rightColumnX = columnSpacing / 2 + buttonWidth / 2
 
         for (index, upgrade) in upgrades.enumerated() {
             let isLeftColumn = index % 2 == 0

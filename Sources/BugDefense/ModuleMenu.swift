@@ -43,17 +43,20 @@ class ModuleMenu: SKNode {
         let background = SKShapeNode(rectOf: size)
         background.fillColor = SKColor.black.withAlphaComponent(0.9)
         background.strokeColor = .clear
-        background.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        background.position = CGPoint(x: 0, y: 0)
         addChild(background)
     }
 
     private func setupHeader(size: CGSize) {
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+
         // Title
         let title: SKLabelNode = SKLabelNode(fontNamed: "Helvetica-Bold")
         title.text = "💎 MODULE SYSTEM 💎"
         title.fontSize = CGFloat(28)
         title.fontColor = .magenta
-        title.position = CGPoint(x: size.width / 2, y: size.height - 75)
+        title.position = CGPoint(x: 0, y: halfHeight - 75)
         addChild(title)
 
         // Currency display
@@ -61,7 +64,7 @@ class ModuleMenu: SKNode {
         gemsLabel.text = "💎 \(moduleManager.gems) Gems"
         gemsLabel.fontSize = CGFloat(18)
         gemsLabel.fontColor = .magenta
-        gemsLabel.position = CGPoint(x: size.width / 2 - 80, y: size.height - 105)
+        gemsLabel.position = CGPoint(x: -80, y: halfHeight - 105)
         gemsLabel.name = "gemsLabel"
         addChild(gemsLabel)
 
@@ -69,13 +72,13 @@ class ModuleMenu: SKNode {
         coinsLabel.text = "🪙 \(researchLab.totalCoins) Coins"
         coinsLabel.fontSize = CGFloat(18)
         coinsLabel.fontColor = .cyan
-        coinsLabel.position = CGPoint(x: size.width / 2 + 80, y: size.height - 105)
+        coinsLabel.position = CGPoint(x: 80, y: halfHeight - 105)
         coinsLabel.name = "coinsLabel"
         addChild(coinsLabel)
 
         // Close button
         closeButton = Button(text: "✕ Close", size: CGSize(width: 100, height: 45), color: .red)
-        closeButton.position = CGPoint(x: size.width - 60, y: size.height - 35)
+        closeButton.position = CGPoint(x: halfWidth - 60, y: halfHeight - 35)
         closeButton.onTap = { [weak self] in
             self?.onClose()
         }
@@ -83,14 +86,15 @@ class ModuleMenu: SKNode {
     }
 
     private func setupTabs(size: CGSize) {
-        let tabY = size.height - 140
+        let halfHeight = size.height / 2
+        let tabY = halfHeight - 140
         let tabWidth: CGFloat = 150
         let tabSpacing: CGFloat = 160
 
         let tabs: [(ModuleTab, String, CGFloat)] = [
-            (.inventory, "📦 Inventory", size.width / 2 - tabSpacing),
-            (.shop, "🛒 Shop", size.width / 2),
-            (.merge, "🔧 Merge", size.width / 2 + tabSpacing)
+            (.inventory, "📦 Inventory", -tabSpacing),
+            (.shop, "🛒 Shop", 0),
+            (.merge, "🔧 Merge", tabSpacing)
         ]
 
         for (tab, text, x) in tabs {
@@ -105,7 +109,9 @@ class ModuleMenu: SKNode {
     }
 
     private func setupViews(size: CGSize) {
-        let contentFrame = CGRect(x: 50, y: 50, width: size.width - 100, height: size.height - 200)
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+        let contentFrame = CGRect(x: -halfWidth + 50, y: -halfHeight + 50, width: size.width - 100, height: size.height - 200)
 
         inventoryView = ModuleInventoryView(
             frame: contentFrame,
