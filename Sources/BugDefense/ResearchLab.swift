@@ -39,6 +39,7 @@ struct ResearchUpgrade {
 class ResearchLab {
     private var upgradeLevels: [String: Int] = [:] // upgradeId -> current level
     private(set) var totalCoins: Int = 0
+    weak var gameState: GameStateManager?
 
     // Cumulative bonuses from all research
     private(set) var totalDamageBonus: CGFloat = 0.0
@@ -155,6 +156,9 @@ class ResearchLab {
     }
 
     func spendCoins(_ amount: Int) -> Bool {
+        if gameState?.isAdminMode == true {
+            return true // Don't spend in admin mode
+        }
         guard totalCoins >= amount else { return false }
         totalCoins -= amount
         onCoinsChanged?(totalCoins)

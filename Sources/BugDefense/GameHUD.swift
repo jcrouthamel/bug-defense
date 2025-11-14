@@ -106,7 +106,7 @@ class GameHUD: SKNode {
 
         // Create buttons with uniform sizing
         let buttonHeight: CGFloat = 40
-        let standardButtonWidth: CGFloat = 110
+        let standardButtonWidth: CGFloat = 85
 
         self.gameControlsDropdown = DropdownMenu(
             title: "Controls",
@@ -121,31 +121,31 @@ class GameHUD: SKNode {
         )
 
         self.researchLabButton = Button(
-            text: "Research 🔬",
+            text: "Research",
             size: CGSize(width: standardButtonWidth, height: buttonHeight),
             color: .cyan
         )
 
         self.cardsButton = Button(
-            text: "Cards 🎴",
+            text: "Cards",
             size: CGSize(width: standardButtonWidth, height: buttonHeight),
             color: .orange
         )
 
         self.modulesButton = Button(
-            text: "Modules 💎",
+            text: "Modules",
             size: CGSize(width: standardButtonWidth, height: buttonHeight),
             color: .magenta
         )
 
         self.tierProgressButton = Button(
-            text: "Tiers 🏆",
+            text: "Tiers",
             size: CGSize(width: standardButtonWidth, height: buttonHeight),
             color: .yellow
         )
 
         self.heroControlButton = Button(
-            text: "Hero 🧙‍♂️",
+            text: "Hero",
             size: CGSize(width: standardButtonWidth, height: buttonHeight),
             color: .systemIndigo
         )
@@ -172,9 +172,9 @@ class GameHUD: SKNode {
         addChild(buildTimerLabel)
 
         // Position top menu buttons with uniform spacing (camera-relative, shifted left)
-        let buttonSpacing: CGFloat = 120  // 110 width + 10 gap
+        let buttonSpacing: CGFloat = 95  // 85 width + 10 gap
         let leftShift: CGFloat = 80  // Shift all buttons to the left
-        let rightEdge = halfWidth - 55 - leftShift  // Half of button width from camera center
+        let rightEdge = halfWidth - 42.5 - leftShift  // Half of button width from camera center
 
         gameControlsDropdown.position = CGPoint(x: rightEdge, y: halfHeight - 30)
         upgradeButton.position = CGPoint(x: rightEdge - buttonSpacing, y: halfHeight - 30)
@@ -412,7 +412,18 @@ class GameHUD: SKNode {
                         self.updateDropdownMenuItems()
                     }
                 )
-            }()
+            }(),
+            // Admin Mode toggle
+            DropdownMenuItem(
+                id: "admin_mode",
+                text: gameState.isAdminMode ? "🔓 Admin: ON" : "🔒 Admin: OFF",
+                color: gameState.isAdminMode ? .systemGreen : .darkGray,
+                action: { [weak self] in
+                    guard let self = self else { return }
+                    self.gameState.toggleAdminMode()
+                    self.updateDropdownMenuItems()
+                }
+            )
         ]
 
         gameControlsDropdown.setItems(items)

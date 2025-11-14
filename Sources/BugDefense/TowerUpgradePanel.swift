@@ -14,7 +14,7 @@ class TowerUpgradePanel: SKNode {
     private let onUpgrade: (Tower) -> Bool  // Returns true if upgrade successful
     private let onSell: (Tower) -> Void  // Called when tower is sold
 
-    private let panelHeight: CGFloat = 430
+    private let panelHeight: CGFloat = 320  // Reduced to fit on screen
     private let background: SKShapeNode
     private let titleLabel: SKLabelNode
     private let levelLabel: SKLabelNode
@@ -46,28 +46,28 @@ class TowerUpgradePanel: SKNode {
         // Title
         self.titleLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         self.titleLabel.text = tower.structureType.displayName
-        self.titleLabel.fontSize = 22
+        self.titleLabel.fontSize = 20
         self.titleLabel.fontColor = .white
         self.titleLabel.verticalAlignmentMode = .top
-        self.titleLabel.position = CGPoint(x: 0, y: panelHeight / 2 - 30)
+        self.titleLabel.position = CGPoint(x: 0, y: panelHeight / 2 - 20)
 
         // Level
         self.levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         self.levelLabel.text = "Level \(tower.level) / 10"
-        self.levelLabel.fontSize = 18
+        self.levelLabel.fontSize = 16
         self.levelLabel.fontColor = .yellow
         self.levelLabel.verticalAlignmentMode = .top
-        self.levelLabel.position = CGPoint(x: 0, y: panelHeight / 2 - 60)
+        self.levelLabel.position = CGPoint(x: 0, y: panelHeight / 2 - 45)
 
         // Stats
         self.statsLabel = SKLabelNode(fontNamed: "Helvetica")
-        self.statsLabel.fontSize = 14
+        self.statsLabel.fontSize = 13
         self.statsLabel.fontColor = .white
         self.statsLabel.numberOfLines = 0
         self.statsLabel.preferredMaxLayoutWidth = panelWidth - 40
         self.statsLabel.verticalAlignmentMode = .top
         self.statsLabel.horizontalAlignmentMode = .center
-        self.statsLabel.position = CGPoint(x: 0, y: panelHeight / 2 - 95)
+        self.statsLabel.position = CGPoint(x: 0, y: panelHeight / 2 - 75)
 
         // Upgrade button
         let upgradeCost = tower.getUpgradeCost()
@@ -79,7 +79,7 @@ class TowerUpgradePanel: SKNode {
             color: buttonColor,
             isEnabled: tower.canUpgrade() && gameState.currency >= upgradeCost
         )
-        self.upgradeButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 105)
+        self.upgradeButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 80)
 
         // Sell button
         let sellValue = tower.getSellValue()
@@ -88,7 +88,7 @@ class TowerUpgradePanel: SKNode {
             size: CGSize(width: 220, height: 40),
             color: .orange
         )
-        self.sellButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 55)
+        self.sellButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 40)
 
         // Close button
         self.closeButton = Button(
@@ -96,7 +96,7 @@ class TowerUpgradePanel: SKNode {
             size: CGSize(width: 120, height: 40),
             color: .red
         )
-        self.closeButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 15)
+        self.closeButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 10)
 
         super.init()
 
@@ -167,7 +167,7 @@ class TowerUpgradePanel: SKNode {
             color: buttonColor,
             isEnabled: isEnabled
         )
-        upgradeButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 105)
+        upgradeButton.position = CGPoint(x: 0, y: -panelHeight / 2 + 80)
         addChild(upgradeButton)
         setupCallbacks()
     }

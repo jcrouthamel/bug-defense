@@ -17,6 +17,7 @@ class GameStateManager {
     private(set) var currentWave: Int = 0
     private(set) var currency: Int
     private(set) var houseHealth: Int
+    var isAdminMode: Bool = false
     var difficulty: Difficulty = .normal {
         didSet {
             if currentWave == 0 {
@@ -56,6 +57,9 @@ class GameStateManager {
     }
 
     func spendCurrency(_ amount: Int) -> Bool {
+        if isAdminMode {
+            return true // Don't actually spend in admin mode
+        }
         guard currency >= amount else { return false }
         currency -= amount
         onCurrencyChanged?(currency)
@@ -63,11 +67,28 @@ class GameStateManager {
     }
 
     func damageHouse(_ damage: Int) {
+        if isAdminMode {
+            return // Don't take damage in admin mode
+        }
         houseHealth = max(0, houseHealth - damage)
         onHealthChanged?(houseHealth)
 
         if houseHealth <= 0 {
             changeState(to: .gameOver)
+        }
+    }
+
+    func toggleAdminMode() {
+        isAdminMode = !isAdminMode
+        if isAdminMode {
+            // Max out all resources when enabling admin mode
+            currency = 999999
+            houseHealth = 999999
+            onCurrencyChanged?(currency)
+            onHealthChanged?(houseHealth)
+            print("🔓 Admin Mode ENABLED - Unlimited resources!")
+        } else {
+            print("🔒 Admin Mode DISABLED")
         }
     }
 

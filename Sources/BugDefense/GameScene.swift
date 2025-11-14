@@ -66,6 +66,10 @@ public class GameScene: SKScene {
     private func setupScene() {
         backgroundColor = SKColor(red: 0.1, green: 0.6, blue: 0.1, alpha: 1.0)
 
+        // Wire up gameState references for managers
+        researchLab.gameState = gameState
+        moduleManager.gameState = gameState
+
         // Set up camera to center the view on the game grid
         gameCamera = SKCameraNode()
         self.camera = gameCamera
@@ -1045,8 +1049,8 @@ public class GameScene: SKScene {
             }
         )
         if let panel = towerUpgradePanel {
-            panel.position = CGPoint(x: size.width / 2, y: size.height / 2)
-            addChild(panel)
+            panel.position = CGPoint(x: 0, y: 0)  // Camera-relative
+            gameCamera.addChild(panel)
         }
     }
 

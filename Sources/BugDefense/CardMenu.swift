@@ -92,33 +92,33 @@ class CardMenu: SKNode {
 
         // Title
         let title = SKLabelNode(fontNamed: "Helvetica-Bold")
-        title.text = "🎴 CARD SYSTEM 🎴"
-        title.fontSize = 32
+        title.text = "CARD SYSTEM"
+        title.fontSize = 24
         title.fontColor = .orange
-        title.position = CGPoint(x: 0, y: halfHeight - 80)
+        title.position = CGPoint(x: 0, y: halfHeight - 40)
         addChild(title)
 
         // Subtitle
         let subtitle = SKLabelNode(fontNamed: "Helvetica")
-        subtitle.text = "Equip cards for bonuses (unlocked from boss waves)"
-        subtitle.fontSize = 14
+        subtitle.text = "Equip cards for bonuses"
+        subtitle.fontSize = 12
         subtitle.fontColor = .lightGray
-        subtitle.position = CGPoint(x: 0, y: halfHeight - 105)
+        subtitle.position = CGPoint(x: 0, y: halfHeight - 60)
         addChild(subtitle)
 
         // Slot section title
         let slotTitle = SKLabelNode(fontNamed: "Helvetica-Bold")
         slotTitle.text = "EQUIPPED CARDS"
-        slotTitle.fontSize = 24
+        slotTitle.fontSize = 18
         slotTitle.fontColor = .cyan
         slotTitle.horizontalAlignmentMode = .left
-        slotTitle.position = CGPoint(x: -halfWidth + 50, y: halfHeight - 140)
+        slotTitle.position = CGPoint(x: -halfWidth + 50, y: halfHeight - 85)
         addChild(slotTitle)
 
-        // Draw card slots
-        let slotY = halfHeight - 200
-        let slotSpacing: CGFloat = 140
-        let startX: CGFloat = -halfWidth + 80
+        // Draw card slots (smaller)
+        let slotY = halfHeight - 135
+        let slotSpacing: CGFloat = 110
+        let startX: CGFloat = -halfWidth + 70
 
         for i in 0..<GameConfiguration.cardSlotsCount {
             let slotView = CardSlotView(
@@ -131,6 +131,9 @@ class CardMenu: SKNode {
                 },
                 onUnlockTapped: { [weak self] slotIndex in
                     self?.handleUnlockSlot(slotIndex)
+                },
+                onUnequipTapped: { [weak self] slotIndex in
+                    self?.handleUnequipCard(slotIndex)
                 }
             )
             slotView.position = CGPoint(x: startX + CGFloat(i) * slotSpacing, y: slotY)
@@ -141,10 +144,10 @@ class CardMenu: SKNode {
         // Collection section title
         let collectionTitle = SKLabelNode(fontNamed: "Helvetica-Bold")
         collectionTitle.text = "COLLECTED CARDS"
-        collectionTitle.fontSize = 24
+        collectionTitle.fontSize = 18
         collectionTitle.fontColor = .cyan
         collectionTitle.horizontalAlignmentMode = .left
-        collectionTitle.position = CGPoint(x: -halfWidth + 50, y: halfHeight - 340)
+        collectionTitle.position = CGPoint(x: -halfWidth + 50, y: halfHeight - 250)
         addChild(collectionTitle)
 
         // Draw collected cards list
@@ -162,11 +165,11 @@ class CardMenu: SKNode {
         cardListViews.removeAll()
 
         let cards = cardManager.getCollectedCardsList()
-        let cardWidth: CGFloat = 250
-        let cardHeight: CGFloat = 80
-        let cardSpacing: CGFloat = 10
-        let startY = halfHeight - 400
-        let startX: CGFloat = -halfWidth + 80
+        let cardWidth: CGFloat = 220
+        let cardHeight: CGFloat = 65
+        let cardSpacing: CGFloat = 8
+        let startY = halfHeight - 290
+        let startX: CGFloat = -halfWidth + 70
 
         let cardsPerRow = 3
         for (index, card) in cards.enumerated() {
@@ -192,9 +195,9 @@ class CardMenu: SKNode {
         if cards.isEmpty {
             let noCardsLabel = SKLabelNode(fontNamed: "Helvetica")
             noCardsLabel.text = "No cards collected yet. Defeat boss waves to earn cards!"
-            noCardsLabel.fontSize = 18
+            noCardsLabel.fontSize = 14
             noCardsLabel.fontColor = .gray
-            noCardsLabel.position = CGPoint(x: 0, y: startY - 40)
+            noCardsLabel.position = CGPoint(x: 0, y: startY - 30)
             addChild(noCardsLabel)
         }
     }
@@ -239,6 +242,11 @@ class CardMenu: SKNode {
         }
     }
 
+    private func handleUnequipCard(_ slotIndex: Int) {
+        cardManager.unequipCard(from: slotIndex)
+        refreshSlots()
+    }
+
     private func updateSlotHighlights() {
         for (index, slotView) in slotViews.enumerated() {
             slotView.setHighlighted(index == selectedSlotIndex)
@@ -261,6 +269,7 @@ class CardSlotView: SKNode {
     private let unlockCost: Int
     private let onSlotTapped: (Int) -> Void
     private let onUnlockTapped: (Int) -> Void
+    private let onUnequipTapped: (Int) -> Void
 
     private let background: SKShapeNode
     private var cardDisplay: SKNode?
@@ -270,15 +279,17 @@ class CardSlotView: SKNode {
 
     init(slotIndex: Int, card: Card?, isUnlocked: Bool, unlockCost: Int,
          onSlotTapped: @escaping (Int) -> Void,
-         onUnlockTapped: @escaping (Int) -> Void) {
+         onUnlockTapped: @escaping (Int) -> Void,
+         onUnequipTapped: @escaping (Int) -> Void) {
         self.slotIndex = slotIndex
         self.isUnlocked = isUnlocked
         self.unlockCost = unlockCost
         self.onSlotTapped = onSlotTapped
         self.onUnlockTapped = onUnlockTapped
+        self.onUnequipTapped = onUnequipTapped
 
-        let size = CGSize(width: 120, height: 160)
-        self.background = SKShapeNode(rectOf: size, cornerRadius: 10)
+        let size = CGSize(width: 95, height: 130)
+        self.background = SKShapeNode(rectOf: size, cornerRadius: 8)
         self.background.fillColor = isUnlocked ? SKColor.darkGray.withAlphaComponent(0.8) : .black
         self.background.strokeColor = .white
         self.background.lineWidth = 2
@@ -288,11 +299,11 @@ class CardSlotView: SKNode {
         addChild(background)
 
         // Create highlight border (initially hidden)
-        let highlightSize = CGSize(width: 124, height: 164)
-        self.highlightBorder = SKShapeNode(rectOf: highlightSize, cornerRadius: 10)
+        let highlightSize = CGSize(width: 99, height: 134)
+        self.highlightBorder = SKShapeNode(rectOf: highlightSize, cornerRadius: 8)
         self.highlightBorder?.fillColor = .clear
         self.highlightBorder?.strokeColor = .yellow
-        self.highlightBorder?.lineWidth = 4
+        self.highlightBorder?.lineWidth = 3
         self.highlightBorder?.isHidden = true
         addChild(highlightBorder!)
 
@@ -318,31 +329,48 @@ class CardSlotView: SKNode {
 
         let container = SKNode()
 
+        // "ACTIVE" badge
+        let activeBadge = SKLabelNode(fontNamed: "Helvetica-Bold")
+        activeBadge.text = "ACTIVE"
+        activeBadge.fontSize = 8
+        activeBadge.fontColor = .green
+        activeBadge.position = CGPoint(x: 0, y: 50)
+        container.addChild(activeBadge)
+
         // Card emoji
         let emoji = SKLabelNode(fontNamed: "Helvetica")
         emoji.text = card.emoji
-        emoji.fontSize = 40
-        emoji.position = CGPoint(x: 0, y: 30)
+        emoji.fontSize = 32
+        emoji.position = CGPoint(x: 0, y: 20)
         container.addChild(emoji)
 
         // Card name
         let name = SKLabelNode(fontNamed: "Helvetica-Bold")
         name.text = card.name
-        name.fontSize = 12
+        name.fontSize = 10
         name.fontColor = .white
         name.position = CGPoint(x: 0, y: -10)
-        name.preferredMaxLayoutWidth = 100
+        name.preferredMaxLayoutWidth = 85
         name.numberOfLines = 2
         container.addChild(name)
 
         // Rarity indicator
         let rarityLabel = SKLabelNode(fontNamed: "Helvetica")
         rarityLabel.text = card.rarity.rawValue
-        rarityLabel.fontSize = 10
+        rarityLabel.fontSize = 9
         let color = card.rarity.color
         rarityLabel.fontColor = SKColor(red: color.r, green: color.g, blue: color.b, alpha: 1.0)
-        rarityLabel.position = CGPoint(x: 0, y: -35)
+        rarityLabel.position = CGPoint(x: 0, y: -32)
         container.addChild(rarityLabel)
+
+        // Unequip button
+        let unequipBtn = SKLabelNode(fontNamed: "Helvetica-Bold")
+        unequipBtn.text = "✕"
+        unequipBtn.fontSize = 14
+        unequipBtn.fontColor = .red
+        unequipBtn.position = CGPoint(x: 0, y: -50)
+        unequipBtn.name = "unequipButton"
+        container.addChild(unequipBtn)
 
         cardDisplay = container
         addChild(container)
@@ -353,10 +381,10 @@ class CardSlotView: SKNode {
 
         let emptyLabel = SKLabelNode(fontNamed: "Helvetica")
         emptyLabel.text = "Empty\nSlot"
-        emptyLabel.fontSize = 14
+        emptyLabel.fontSize = 12
         emptyLabel.fontColor = .gray
         emptyLabel.numberOfLines = 2
-        emptyLabel.position = CGPoint(x: 0, y: -10)
+        emptyLabel.position = CGPoint(x: 0, y: -8)
         cardDisplay = emptyLabel
         addChild(emptyLabel)
     }
@@ -367,17 +395,17 @@ class CardSlotView: SKNode {
 
         let lock = SKLabelNode(fontNamed: "Helvetica")
         lock.text = "🔒"
-        lock.fontSize = 40
-        lock.position = CGPoint(x: 0, y: 20)
+        lock.fontSize = 32
+        lock.position = CGPoint(x: 0, y: 15)
         lockIcon = lock
         addChild(lock)
 
         let unlockBtn = Button(
             text: "Unlock\n\(unlockCost) 🪙",
-            size: CGSize(width: 100, height: 50),
+            size: CGSize(width: 85, height: 45),
             color: .cyan
         )
-        unlockBtn.position = CGPoint(x: 0, y: -30)
+        unlockBtn.position = CGPoint(x: 0, y: -25)
         unlockBtn.onTap = { [weak self] in
             guard let self = self else { return }
             self.onUnlockTapped(self.slotIndex)
@@ -416,12 +444,31 @@ class CardSlotView: SKNode {
     #if os(macOS)
     override func mouseDown(with event: NSEvent) {
         if isUnlocked {
+            let location = event.location(in: self)
+
+            // Check if clicking on unequip button
+            if let unequipNode = cardDisplay?.childNode(withName: "unequipButton"),
+               unequipNode.contains(location) {
+                onUnequipTapped(slotIndex)
+                return
+            }
+
             onSlotTapped(slotIndex)
         }
     }
     #elseif os(iOS)
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if isUnlocked {
+            guard let touch = touches.first else { return }
+            let location = touch.location(in: self)
+
+            // Check if tapping on unequip button
+            if let unequipNode = cardDisplay?.childNode(withName: "unequipButton"),
+               unequipNode.contains(location) {
+                onUnequipTapped(slotIndex)
+                return
+            }
+
             onSlotTapped(slotIndex)
         }
     }
@@ -451,37 +498,37 @@ class CardListItemView: SKNode {
         // Emoji
         let emoji = SKLabelNode(fontNamed: "Helvetica")
         emoji.text = card.emoji
-        emoji.fontSize = 30
-        emoji.position = CGPoint(x: -size.width / 2 + 30, y: 0)
+        emoji.fontSize = 26
+        emoji.position = CGPoint(x: -size.width / 2 + 25, y: 0)
         addChild(emoji)
 
         // Name
         let name = SKLabelNode(fontNamed: "Helvetica-Bold")
         name.text = card.name
-        name.fontSize = 14
+        name.fontSize = 12
         name.fontColor = .white
         name.horizontalAlignmentMode = .left
-        name.position = CGPoint(x: -size.width / 2 + 60, y: 15)
+        name.position = CGPoint(x: -size.width / 2 + 50, y: 12)
         addChild(name)
 
         // Description
         let desc = SKLabelNode(fontNamed: "Helvetica")
         desc.text = card.description
-        desc.fontSize = 11
+        desc.fontSize = 9
         desc.fontColor = .lightGray
         desc.horizontalAlignmentMode = .left
-        desc.position = CGPoint(x: -size.width / 2 + 60, y: -5)
-        desc.preferredMaxLayoutWidth = size.width - 70
+        desc.position = CGPoint(x: -size.width / 2 + 50, y: -4)
+        desc.preferredMaxLayoutWidth = size.width - 60
         desc.numberOfLines = 0  // Allow text wrapping
         addChild(desc)
 
         // Rarity
         let rarity = SKLabelNode(fontNamed: "Helvetica")
         rarity.text = card.rarity.rawValue
-        rarity.fontSize = 10
+        rarity.fontSize = 9
         rarity.fontColor = SKColor(red: color.r, green: color.g, blue: color.b, alpha: 1.0)
         rarity.horizontalAlignmentMode = .left
-        rarity.position = CGPoint(x: -size.width / 2 + 60, y: -25)
+        rarity.position = CGPoint(x: -size.width / 2 + 50, y: -20)
         addChild(rarity)
 
         isUserInteractionEnabled = true

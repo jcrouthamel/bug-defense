@@ -174,6 +174,7 @@ enum ModuleTier: String {
 class ModuleManager {
     private(set) var inventory: [Module] = []
     private(set) var gems: Int = 0
+    weak var gameState: GameStateManager?
 
     // Callbacks
     var onModuleDropped: ((Module) -> Void)?
@@ -189,6 +190,9 @@ class ModuleManager {
     }
 
     func spendGems(_ amount: Int) -> Bool {
+        if gameState?.isAdminMode == true {
+            return true // Don't spend in admin mode
+        }
         guard gems >= amount else { return false }
         gems -= amount
         onGemsChanged?(gems)

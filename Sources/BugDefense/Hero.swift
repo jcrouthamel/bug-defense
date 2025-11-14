@@ -144,35 +144,57 @@ class Hero: SKNode {
     private func attack(_ bug: Bug) {
         // Deal damage to bug
         let _ = bug.takeDamage(damage)
+        print("🧙‍♂️ Hero attacked bug for \(damage) damage!")
 
-        // Create sword slash animation
+        // Hero attack animation - pulse effect
+        let scaleUp = SKAction.scale(to: 1.2, duration: 0.1)
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
+        sprite.run(SKAction.sequence([scaleUp, scaleDown]))
+
+        // Create sword slash animation at bug's position
         let slash = SKLabelNode(text: "⚔️")
-        slash.fontSize = GameConfiguration.tileSize * 0.8
-        slash.position = CGPoint(
-            x: (bug.position.x - position.x) / 2,
-            y: (bug.position.y - position.y) / 2
-        )
-        slash.zPosition = 5
-        addChild(slash)
+        slash.fontSize = GameConfiguration.tileSize * 1.2
+        slash.position = bug.position
+        slash.zPosition = 15
+        parent?.addChild(slash)
 
-        // Animate slash
-        let fadeOut = SKAction.fadeOut(withDuration: 0.2)
+        // Animate slash with rotation and scaling
+        let rotate = SKAction.rotate(byAngle: .pi, duration: 0.3)
+        let scaleUpSlash = SKAction.scale(to: 1.5, duration: 0.15)
+        let scaleDownSlash = SKAction.scale(to: 0.5, duration: 0.15)
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
         let remove = SKAction.removeFromParent()
-        slash.run(SKAction.sequence([fadeOut, remove]))
+        slash.run(SKAction.sequence([
+            SKAction.group([rotate, scaleUpSlash]),
+            SKAction.group([scaleDownSlash, fadeOut]),
+            remove
+        ]))
+
+        // Flash effect on bug
+        if let bugSprite = bug.children.first as? SKLabelNode {
+            let originalColor = bugSprite.fontColor
+            let flash = SKAction.sequence([
+                SKAction.colorize(with: .red, colorBlendFactor: 1.0, duration: 0.1),
+                SKAction.colorize(with: originalColor ?? .white, colorBlendFactor: 1.0, duration: 0.1)
+            ])
+            bugSprite.run(flash)
+        }
 
         // Create damage number
         let damageLabel = SKLabelNode(text: "-\(damage)")
-        damageLabel.fontSize = 16
+        damageLabel.fontSize = 20
         damageLabel.fontColor = .red
+        damageLabel.fontName = "Helvetica-Bold"
         damageLabel.position = bug.position
         damageLabel.zPosition = 20
         parent?.addChild(damageLabel)
 
-        let moveUp = SKAction.moveBy(x: 0, y: 30, duration: 0.5)
-        let fadeOutLabel = SKAction.fadeOut(withDuration: 0.5)
+        let moveUp = SKAction.moveBy(x: 0, y: 40, duration: 0.6)
+        let fadeOutLabel = SKAction.fadeOut(withDuration: 0.6)
+        let scaleLabel = SKAction.scale(to: 1.3, duration: 0.3)
         let removeLabel = SKAction.removeFromParent()
         damageLabel.run(SKAction.sequence([
-            SKAction.group([moveUp, fadeOutLabel]),
+            SKAction.group([moveUp, fadeOutLabel, scaleLabel]),
             removeLabel
         ]))
     }
