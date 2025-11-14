@@ -152,13 +152,17 @@ class GameHUD: SKNode {
 
         super.init()
 
-        // Position labels
-        currencyLabel.position = CGPoint(x: 10, y: size.height - 30)
-        healthLabel.position = CGPoint(x: 10, y: size.height - 55)
-        coinsLabel.position = CGPoint(x: 10, y: size.height - 80)
-        gemsLabel.position = CGPoint(x: 10, y: size.height - 105)
-        waveLabel.position = CGPoint(x: size.width / 2, y: size.height - 80)
-        buildTimerLabel.position = CGPoint(x: size.width / 2, y: size.height - 105)
+        // Position labels (camera-relative coordinates)
+        // Camera children are positioned relative to camera center (0,0)
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+
+        currencyLabel.position = CGPoint(x: -halfWidth + 10, y: halfHeight - 30)
+        healthLabel.position = CGPoint(x: -halfWidth + 10, y: halfHeight - 55)
+        coinsLabel.position = CGPoint(x: -halfWidth + 10, y: halfHeight - 80)
+        gemsLabel.position = CGPoint(x: -halfWidth + 10, y: halfHeight - 105)
+        waveLabel.position = CGPoint(x: 0, y: halfHeight - 80)
+        buildTimerLabel.position = CGPoint(x: 0, y: halfHeight - 105)
 
         addChild(currencyLabel)
         addChild(healthLabel)
@@ -167,17 +171,17 @@ class GameHUD: SKNode {
         addChild(waveLabel)
         addChild(buildTimerLabel)
 
-        // Position top menu buttons with uniform spacing
+        // Position top menu buttons with uniform spacing (camera-relative)
         let buttonSpacing: CGFloat = 120  // 110 width + 10 gap
-        let rightEdge = size.width - 55  // Half of button width
+        let rightEdge = halfWidth - 55  // Half of button width from camera center
 
-        gameControlsDropdown.position = CGPoint(x: rightEdge, y: size.height - 30)
-        upgradeButton.position = CGPoint(x: rightEdge - buttonSpacing, y: size.height - 30)
-        researchLabButton.position = CGPoint(x: rightEdge - buttonSpacing * 2, y: size.height - 30)
-        cardsButton.position = CGPoint(x: rightEdge - buttonSpacing * 3, y: size.height - 30)
-        modulesButton.position = CGPoint(x: rightEdge - buttonSpacing * 4, y: size.height - 30)
-        tierProgressButton.position = CGPoint(x: rightEdge - buttonSpacing * 5, y: size.height - 30)
-        heroControlButton.position = CGPoint(x: rightEdge - buttonSpacing * 6, y: size.height - 30)
+        gameControlsDropdown.position = CGPoint(x: rightEdge, y: halfHeight - 30)
+        upgradeButton.position = CGPoint(x: rightEdge - buttonSpacing, y: halfHeight - 30)
+        researchLabButton.position = CGPoint(x: rightEdge - buttonSpacing * 2, y: halfHeight - 30)
+        cardsButton.position = CGPoint(x: rightEdge - buttonSpacing * 3, y: halfHeight - 30)
+        modulesButton.position = CGPoint(x: rightEdge - buttonSpacing * 4, y: halfHeight - 30)
+        tierProgressButton.position = CGPoint(x: rightEdge - buttonSpacing * 5, y: halfHeight - 30)
+        heroControlButton.position = CGPoint(x: rightEdge - buttonSpacing * 6, y: halfHeight - 30)
 
         addChild(gameControlsDropdown)
         addChild(upgradeButton)
@@ -187,15 +191,15 @@ class GameHUD: SKNode {
         addChild(tierProgressButton)
         addChild(heroControlButton)
 
-        // Create toggle button for top menu
+        // Create toggle button for top menu (camera-relative)
         topMenuToggleButton = Button(
             text: "📋",
             size: CGSize(width: 50, height: 50),
             color: .systemGreen
         )
         topMenuToggleButton.position = CGPoint(
-            x: size.width - 30,
-            y: size.height - 30
+            x: halfWidth - 30,
+            y: halfHeight - 30
         )
         topMenuToggleButton.onTap = { [weak self] in
             self?.toggleTopMenu()
@@ -214,15 +218,19 @@ class GameHUD: SKNode {
     }
 
     private func setupTowerButtons(screenSize: CGSize) {
-        // Create toggle button for tower panel
+        // Camera-relative positioning
+        let halfWidth = screenSize.width / 2
+        let halfHeight = screenSize.height / 2
+
+        // Create toggle button for tower panel (camera-relative)
         towerPanelToggleButton = Button(
             text: "🏗️",
             size: CGSize(width: 50, height: 50),
             color: .blue
         )
         towerPanelToggleButton.position = CGPoint(
-            x: screenSize.width - 30,
-            y: 30
+            x: halfWidth - 30,
+            y: -halfHeight + 30
         )
         towerPanelToggleButton.onTap = { [weak self] in
             self?.toggleTowerPanel()
@@ -241,9 +249,9 @@ class GameHUD: SKNode {
         let buttonSpacing: CGFloat = 5
         let buttonsPerColumn = 4
 
-        // Position from bottom right
-        let startX = screenSize.width - 85
-        let startY: CGFloat = 90
+        // Position from bottom right (camera-relative)
+        let startX = halfWidth - 85
+        let startY: CGFloat = -halfHeight + 90
 
         for (index, type) in towerTypes.enumerated() {
             let button = TowerButton(
