@@ -289,29 +289,15 @@ class Bug: SKShapeNode {
         } else {
             let moveDistance = moveSpeed * slowFactor * CGFloat(deltaTime)
 
-            // Determine segment direction based on grid positions
-            let prevGridPos = pathIndex > 1 ? movementPath[pathIndex - 1] : gridPosition
-            let deltaX = abs(targetGridPos.x - prevGridPos.x)
-            let deltaY = abs(targetGridPos.y - prevGridPos.y)
-
-            // Check if this is a diagonal segment (both X and Y change)
-            if deltaX > 0 && deltaY > 0 {
-                // Diagonal movement - move along both axes toward target
-                let normalizedDx = dx / distance
-                let normalizedDy = dy / distance
-                position.x += normalizedDx * moveDistance
-                position.y += normalizedDy * moveDistance
-            } else if deltaX > deltaY {
-                // Horizontal segment - lock Y to target
-                let moveX = min(abs(dx), moveDistance) * (dx > 0 ? 1 : -1)
-                position.x += moveX
-                position.y = targetWorldPos.y
-            } else {
-                // Vertical segment - lock X to target
-                let moveY = min(abs(dy), moveDistance) * (dy > 0 ? 1 : -1)
-                position.y += moveY
-                position.x = targetWorldPos.x
-            }
+            // 🐛 Use normalized vector movement for all directions
+            // This ensures bugs move in a straight line toward the target waypoint,
+            // keeping them precisely on the path regardless of segment orientation.
+            // The direction vector (dx, dy) is normalized by dividing by distance,
+            // then scaled by moveDistance to maintain consistent speed.
+            let normalizedDx = dx / distance
+            let normalizedDy = dy / distance
+            position.x += normalizedDx * moveDistance
+            position.y += normalizedDy * moveDistance
         }
     }
 
