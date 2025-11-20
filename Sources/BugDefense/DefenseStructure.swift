@@ -463,8 +463,14 @@ class Tower: DefenseStructure {
         // Tower-specific special mechanics
         applyTowerSpecialEffects(bug: bug, bugs: bugs, damage: effectiveDamage)
 
-        // Create projectile animation
-        createProjectile(to: bug.position)
+        // Create projectile animation (skip for towers with custom visual effects)
+        switch structureType {
+        case .lightningTower, .laserTower, .freezeTower:
+            // These towers have their own visual effects, don't show generic projectile
+            break
+        default:
+            createProjectile(to: bug.position)
+        }
     }
 
     private func applyTowerSpecialEffects(bug: Bug, bugs: [Bug], damage: Int) {
@@ -485,7 +491,10 @@ class Tower: DefenseStructure {
             }
 
         case .lightningTower:
-            // Lightning: Chain to up to 3 nearby bugs
+            // Lightning: Initial bolt to target, then chain to up to 3 nearby bugs
+            // Create initial lightning bolt from tower to target
+            createLightningArc(from: position, to: bug.position)
+
             let chainRadius: CGFloat = 100.0
             let chainDamage = damage / 2
             var chainedBugs: Set<ObjectIdentifier> = [ObjectIdentifier(bug)]

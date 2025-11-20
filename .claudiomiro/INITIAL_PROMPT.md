@@ -1,0 +1,1 @@
+can we find a way to keep the bugs on the map path for each map type?

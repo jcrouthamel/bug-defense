@@ -9,12 +9,20 @@ class Hero: SKNode {
     private var currentHealth: Int
     private let maxHealth: Int
     private let damage: Int
-    private let attackSpeed: TimeInterval
+    private let baseAttackSpeed: TimeInterval
     private var timeSinceLastAttack: TimeInterval = 0
+
+    // Power-up mode
+    private(set) var availablePowerUps: Int = 0
+    private var isPowerUpActive: Bool = false
+    private var powerUpTimeRemaining: TimeInterval = 0
+    private let powerUpDuration: TimeInterval = 30.0
+    private let powerUpAttackSpeedMultiplier: CGFloat = 3.0
 
     private let sprite: SKLabelNode
     private let healthBar: SKShapeNode
     private let healthBarBackground: SKShapeNode
+    private var powerUpIndicator: SKShapeNode?
 
     // Movement
     private var targetPosition: GridPosition?
@@ -31,11 +39,11 @@ class Hero: SKNode {
         self.maxHealth = 200
         self.currentHealth = maxHealth
         self.damage = 25
-        self.attackSpeed = 0.5 // Attack every 0.5 seconds
+        self.baseAttackSpeed = 0.5 // Attack every 0.5 seconds
         self.attackRange = GameConfiguration.tileSize * 1.5
 
-        // Create hero sprite
-        self.sprite = SKLabelNode(text: "🧙‍♂️")
+        // Create hero sprite - bug exterminator with protective gear
+        self.sprite = SKLabelNode(text: "👷‍♂️")
         self.sprite.fontSize = GameConfiguration.tileSize * 1.5
         self.sprite.verticalAlignmentMode = .center
         self.sprite.horizontalAlignmentMode = .center
@@ -73,6 +81,14 @@ class Hero: SKNode {
 
     func update(deltaTime: TimeInterval, bugs: [Bug]) {
         timeSinceLastAttack += deltaTime
+
+        // Handle power-up timer
+        if isPowerUpActive {
+            powerUpTimeRemaining -= deltaTime
+            if powerUpTimeRemaining <= 0 {
+                deactivatePowerUp()
+            }
+        }
 
         // Handle movement
         if let target = targetPosition {
@@ -134,8 +150,13 @@ class Hero: SKNode {
 
         currentTarget = nearestBug
 
+        // Calculate effective attack speed (faster during power-up)
+        let effectiveAttackSpeed = isPowerUpActive ?
+            (baseAttackSpeed / powerUpAttackSpeedMultiplier) :
+            baseAttackSpeed
+
         // Attack if we have a target and attack is ready
-        if let target = currentTarget, timeSinceLastAttack >= attackSpeed {
+        if let target = currentTarget, timeSinceLastAttack >= effectiveAttackSpeed {
             attack(target)
             timeSinceLastAttack = 0
         }
@@ -144,29 +165,26 @@ class Hero: SKNode {
     private func attack(_ bug: Bug) {
         // Deal damage to bug
         let _ = bug.takeDamage(damage)
-        print("🧙‍♂️ Hero attacked bug for \(damage) damage!")
+        print("👷‍♂️ Exterminator attacked bug for \(damage) damage!")
 
         // Hero attack animation - pulse effect
         let scaleUp = SKAction.scale(to: 1.2, duration: 0.1)
         let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
         sprite.run(SKAction.sequence([scaleUp, scaleDown]))
 
-        // Create sword slash animation at bug's position
-        let slash = SKLabelNode(text: "⚔️")
-        slash.fontSize = GameConfiguration.tileSize * 1.2
-        slash.position = bug.position
-        slash.zPosition = 15
-        parent?.addChild(slash)
+        // Create pest spray animation at bug's position
+        let spray = SKLabelNode(text: "💨")
+        spray.fontSize = GameConfiguration.tileSize * 1.2
+        spray.position = bug.position
+        spray.zPosition = 15
+        parent?.addChild(spray)
 
-        // Animate slash with rotation and scaling
-        let rotate = SKAction.rotate(byAngle: .pi, duration: 0.3)
-        let scaleUpSlash = SKAction.scale(to: 1.5, duration: 0.15)
-        let scaleDownSlash = SKAction.scale(to: 0.5, duration: 0.15)
+        // Animate spray with expansion and fading
+        let scaleUpSpray = SKAction.scale(to: 2.0, duration: 0.3)
         let fadeOut = SKAction.fadeOut(withDuration: 0.3)
         let remove = SKAction.removeFromParent()
-        slash.run(SKAction.sequence([
-            SKAction.group([rotate, scaleUpSlash]),
-            SKAction.group([scaleDownSlash, fadeOut]),
+        spray.run(SKAction.sequence([
+            SKAction.group([scaleUpSpray, fadeOut]),
             remove
         ]))
 
@@ -239,5 +257,86 @@ class Hero: SKNode {
 
     func isDead() -> Bool {
         return currentHealth <= 0
+    }
+
+    // MARK: - Power-Up Mode
+
+    func awardPowerUp() {
+        availablePowerUps += 1
+        print("⚡ Hero earned a power-up! Total available: \(availablePowerUps)")
+
+        // Show visual notification
+        let notification = SKLabelNode(fontNamed: "Helvetica-Bold")
+        notification.text = "⚡ POWER-UP EARNED! ⚡"
+        notification.fontSize = 20
+        notification.fontColor = .yellow
+        notification.position = CGPoint(x: 0, y: 60)
+        notification.zPosition = 100
+        addChild(notification)
+
+        let fadeOut = SKAction.fadeOut(withDuration: 2.0)
+        let moveUp = SKAction.moveBy(x: 0, y: 40, duration: 2.0)
+        let remove = SKAction.removeFromParent()
+        notification.run(SKAction.sequence([
+            SKAction.group([fadeOut, moveUp]),
+            remove
+        ]))
+    }
+
+    func activatePowerUp() -> Bool {
+        guard availablePowerUps > 0 else {
+            print("⚡ No power-ups available!")
+            return false
+        }
+
+        guard !isPowerUpActive else {
+            print("⚡ Power-up already active!")
+            return false
+        }
+
+        availablePowerUps -= 1
+        isPowerUpActive = true
+        powerUpTimeRemaining = powerUpDuration
+        print("⚡💨 POWER-UP ACTIVATED! Hero attacks 3x faster for 30 seconds!")
+
+        // Create visual indicator
+        let indicator = SKShapeNode(circleOfRadius: GameConfiguration.tileSize * 0.9)
+        indicator.strokeColor = .yellow
+        indicator.lineWidth = 4
+        indicator.fillColor = .clear
+        indicator.zPosition = 5
+        powerUpIndicator = indicator
+        addChild(indicator)
+
+        // Pulse animation for indicator
+        let scaleUp = SKAction.scale(to: 1.1, duration: 0.5)
+        let scaleDown = SKAction.scale(to: 0.9, duration: 0.5)
+        let pulse = SKAction.sequence([scaleUp, scaleDown])
+        indicator.run(SKAction.repeatForever(pulse))
+
+        // Make hero sprite glow
+        sprite.run(SKAction.repeatForever(
+            SKAction.sequence([
+                SKAction.colorize(with: .yellow, colorBlendFactor: 0.5, duration: 0.3),
+                SKAction.colorize(withColorBlendFactor: 0, duration: 0.3)
+            ])
+        ), withKey: "powerUpGlow")
+
+        return true
+    }
+
+    private func deactivatePowerUp() {
+        isPowerUpActive = false
+        powerUpTimeRemaining = 0
+        print("⚡ Power-up expired")
+
+        // Remove visual indicator
+        powerUpIndicator?.removeAllActions()
+        powerUpIndicator?.removeFromParent()
+        powerUpIndicator = nil
+
+        // Stop glow
+        sprite.removeAction(forKey: "powerUpGlow")
+        sprite.colorBlendFactor = 0
     }
 }

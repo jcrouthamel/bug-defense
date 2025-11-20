@@ -51,6 +51,9 @@ public class GameScene: SKScene {
     private var heroControlMode: Bool = false
     private var heroSelectionIndicator: SKShapeNode?
 
+    // Special abilities
+    private var hasUsedNuke: Bool = false
+
     // Timing
     private var lastUpdateTime: TimeInterval = 0
     private var buildPhaseTimer: TimeInterval = 0
@@ -75,17 +78,18 @@ public class GameScene: SKScene {
         self.camera = gameCamera
         addChild(gameCamera)
 
-        // Calculate grid dimensions
+        // Calculate grid dimensions (always constant: 20x15 tiles = 800x600 points)
         let gridWidth = CGFloat(GameConfiguration.gridWidth) * GameConfiguration.tileSize
         let gridHeight = CGFloat(GameConfiguration.gridHeight) * GameConfiguration.tileSize
 
-        // Position camera to center on the grid with some top margin for HUD
-        let topMargin: CGFloat = 40  // Space for top HUD elements
-        let cameraX = gridWidth / 2
-        let cameraY = gridHeight / 2 - topMargin / 2
+        // Position camera at the exact center of the grid
+        // The grid coordinates go from (0,0) to (gridWidth, gridHeight)
+        // So the center is at (gridWidth/2, gridHeight/2)
+        let cameraX = gridWidth / 2  // 400
+        let cameraY = gridHeight / 2  // 300
         gameCamera.position = CGPoint(x: cameraX, y: cameraY)
 
-        print("📷 Camera positioned at (\(cameraX), \(cameraY)) for grid \(gridWidth)x\(gridHeight)")
+        print("📷 Camera positioned at (\(cameraX), \(cameraY)) for grid \(gridWidth)x\(gridHeight), screen \(size.width)x\(size.height)")
 
         // Create grid layer
         gridLayer = SKNode()
@@ -148,6 +152,21 @@ public class GameScene: SKScene {
             },
             onToggleHeroControl: { [weak self] in
                 self?.toggleHeroControlMode()
+            },
+            onActivateNuke: { [weak self] in
+                self?.activateNuke()
+            },
+            hasUsedNuke: { [weak self] in
+                return self?.hasUsedNuke ?? true
+            },
+            onActivatePowerUp: { [weak self] in
+                guard let self = self else { return }
+                if self.hero.activatePowerUp() {
+                    self.hud.refreshPowerUpButton()
+                }
+            },
+            getAvailablePowerUps: { [weak self] in
+                return self?.hero.availablePowerUps ?? 0
             }
         )
         gameCamera.addChild(hud)
@@ -158,6 +177,7 @@ public class GameScene: SKScene {
         hud.updateCoins(researchLab.totalCoins)
         hud.updateGems(moduleManager.gems)
         hud.updateWave(gameState.currentWave)
+        hud.refreshPowerUpButton()
     }
 
     private func setupCallbacks() {
@@ -430,16 +450,26 @@ public class GameScene: SKScene {
 
         gameState.startNextWave()
 
-        // Update map for current tier
+        // Store old map before updating
+        let previousMap = MapManager.shared.currentMap
+
+        // Update map for current tier (may select new random map every 10 waves)
         TierProgressionManager.shared.updateMapForWave(gameState.currentWave)
 
         let newTier = TierProgressionManager.shared.getCurrentTier(for: gameState.currentWave)
+        let newMap = MapManager.shared.currentMap
 
         // If tier changed, redraw grid and reset towers
         if previousTier.number != newTier.number {
             print("🏆 Tier transition: \(previousTier.name) → \(newTier.name)")
             resetAllTowers()
             redrawGrid()
+        }
+        // If map changed (happens every 10 waves), redraw grid and recalculate paths
+        else if previousMap != newMap {
+            print("🗺️ Map changed! Redrawing grid and recalculating bug paths")
+            redrawGrid()
+            recalculateBugPaths()
         }
 
         waveManager.startWave()
@@ -455,6 +485,12 @@ public class GameScene: SKScene {
             if let card = cardManager.awardRandomCard() {
                 showCardRewardPopup(card)
             }
+        }
+
+        // Award hero power-up every 5 waves
+        if gameState.currentWave % 5 == 0 {
+            hero.awardPowerUp()
+            hud.refreshPowerUpButton()
         }
 
         // Show tier progression UI when tier is completed
@@ -477,43 +513,16 @@ public class GameScene: SKScene {
         bug.baseSlowFactor = cardSlowFactor
         bug.slowFactor = cardSlowFactor
 
-        // Find path to house
-        let path: [GridPosition]?
-        if bug.bugType.canFly {
-            // Flying bugs take direct path, ignoring roads
-            path = pathfindingGrid.findFlyingPath(
-                from: bug.gridPosition,
-                to: MapManager.shared.getCurrentHousePosition()
-            )
-        } else {
-            // Ground bugs follow the road, but pathfind around obstacles if needed
-            let roadPath = MapManager.shared.getCurrentRoadPath()
-            print("📍 Road path has \(roadPath.count) waypoints, starts at \(roadPath.first?.description ?? "nil"), ends at \(roadPath.last?.description ?? "nil")")
+        // Find path to house - all bugs follow the road path
+        let roadPath = MapManager.shared.getCurrentRoadPath()
+        print("📍 Road path has \(roadPath.count) waypoints, starts at \(roadPath.first?.description ?? "nil"), ends at \(roadPath.last?.description ?? "nil")")
 
-            // Check if the road is blocked by walls
-            if isRoadPathBlocked(roadPath) {
-                // Road is blocked, use A* pathfinding
-                print("🚧 Road is blocked! Using A* pathfinding for \(bug.bugType)")
-                path = pathfindingGrid.findPath(
-                    from: bug.gridPosition,
-                    to: MapManager.shared.getCurrentHousePosition()
-                )
-                print("📍 A* path has \(path?.count ?? 0) waypoints")
-            } else {
-                // Road is clear, use the predefined road path
-                print("🛣️ Road is clear! Using predefined road path for \(bug.bugType) with \(roadPath.count) waypoints")
-                path = roadPath
-            }
-        }
-
-        if let path = path {
-            bug.setPath(path)
-            bugs.append(bug)
-            addChild(bug)
-            print("✅ Bug spawned: \(bug.bugType) at position \(bug.gridPosition)")
-        } else {
-            print("❌ Failed to spawn bug: No path found from \(bug.gridPosition) to house")
-        }
+        // All bugs follow the predefined road path (towers cannot block roads)
+        print("🛣️ Using predefined road path for \(bug.bugType) with \(roadPath.count) waypoints")
+        bug.setPath(roadPath)
+        bugs.append(bug)
+        addChild(bug)
+        print("✅ Bug spawned: \(bug.bugType) at position \(bug.gridPosition)")
     }
 
     private func handleBugDeath(_ bug: Bug) {
@@ -585,6 +594,78 @@ public class GameScene: SKScene {
         print(heroControlMode ? "🧙‍♂️ Hero control mode enabled" : "🧙‍♂️ Hero control mode disabled")
     }
 
+    // MARK: - Nuke Ability
+
+    private func activateNuke() {
+        guard !hasUsedNuke else {
+            print("💣 Nuke already used this session!")
+            return
+        }
+
+        guard !bugs.isEmpty else {
+            print("💣 No bugs to nuke!")
+            return
+        }
+
+        hasUsedNuke = true
+        print("💣💥 NUKE ACTIVATED! Destroying all bugs!")
+
+        // Create screen flash effect
+        let flashOverlay = SKShapeNode(rectOf: size)
+        flashOverlay.fillColor = .white
+        flashOverlay.position = CGPoint(x: 0, y: 0)
+        flashOverlay.alpha = 0
+        flashOverlay.zPosition = 2000
+        gameCamera.addChild(flashOverlay)
+
+        let flashIn = SKAction.fadeAlpha(to: 0.8, duration: 0.15)
+        let flashOut = SKAction.fadeOut(withDuration: 0.3)
+        let remove = SKAction.removeFromParent()
+        flashOverlay.run(SKAction.sequence([flashIn, flashOut, remove]))
+
+        // Destroy all bugs with explosion animations
+        for bug in bugs {
+            // Create explosion at bug location
+            let explosion = SKLabelNode(text: "💥")
+            explosion.fontSize = 60
+            explosion.position = bug.position
+            explosion.zPosition = 100
+            addChild(explosion)
+
+            // Animate explosion
+            let scaleUp = SKAction.scale(to: 2.0, duration: 0.3)
+            let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+            let removeExplosion = SKAction.removeFromParent()
+            explosion.run(SKAction.sequence([
+                SKAction.group([scaleUp, fadeOut]),
+                removeExplosion
+            ]))
+
+            // Kill the bug
+            bug.removeFromParent()
+        }
+
+        // Clear bugs array
+        bugs.removeAll()
+
+        // Show nuke message
+        let nukeMessage = SKLabelNode(fontNamed: "Helvetica-Bold")
+        nukeMessage.text = "💣 NUKE DEPLOYED! 💣"
+        nukeMessage.fontSize = 32
+        nukeMessage.fontColor = .red
+        nukeMessage.position = CGPoint(x: 0, y: 0)
+        nukeMessage.zPosition = 2001
+        gameCamera.addChild(nukeMessage)
+
+        let messageScale = SKAction.scale(to: 1.5, duration: 0.5)
+        let messageFade = SKAction.fadeOut(withDuration: 1.0)
+        let removeMessage = SKAction.removeFromParent()
+        nukeMessage.run(SKAction.sequence([
+            SKAction.group([messageScale, messageFade]),
+            removeMessage
+        ]))
+    }
+
     private func createPlacementPreview(for type: StructureType) {
         placementPreview?.removeFromParent()
 
@@ -620,10 +701,20 @@ public class GameScene: SKScene {
 
         print("🖱️ Mouse click at world: \(location), grid: \(gridPos)")
 
-        // First, check if any nodes at this location want to handle the event
+        // Convert location to camera space for HUD checking
+        let cameraLocation = convert(location, to: gameCamera)
+
+        // Check if HUD should handle this click (only if clicking on actual buttons)
+        if hud.contains(cameraLocation) {
+            print("🎯 Click on HUD button")
+            hud.mouseDown(with: event)
+            return
+        }
+
+        // Check other interactive nodes (skip HUD since we already checked it)
         let nodesAtPoint = nodes(at: location)
         for node in nodesAtPoint {
-            if node.isUserInteractionEnabled {
+            if node.isUserInteractionEnabled && node !== hud {
                 print("🎯 Delegating to node: \(type(of: node))")
                 node.mouseDown(with: event)
                 return
@@ -687,10 +778,20 @@ public class GameScene: SKScene {
 
         print("👆 Touch at world: \(location), grid: \(gridPos)")
 
-        // First, check if any nodes at this location want to handle the event
+        // Convert location to camera space for HUD checking
+        let cameraLocation = convert(location, to: gameCamera)
+
+        // Check if HUD should handle this touch (only if touching actual buttons)
+        if hud.contains(cameraLocation) {
+            print("🎯 Touch on HUD button")
+            hud.touchesBegan(touches, with: event)
+            return
+        }
+
+        // Check other interactive nodes (skip HUD since we already checked it)
         let nodesAtPoint = nodes(at: location)
         for node in nodesAtPoint {
-            if node.isUserInteractionEnabled {
+            if node.isUserInteractionEnabled && node !== hud {
                 print("🎯 Found interactive node: \(type(of: node))")
                 // Forward touch to the node
                 node.touchesBegan(touches, with: event)
@@ -927,51 +1028,14 @@ public class GameScene: SKScene {
         }
     }
 
-    private func isRoadPathBlocked(_ roadPath: [GridPosition]) -> Bool {
-        // Check if any position in the road path is blocked by a wall or structure
-        // Exclude the house/goal position since bugs are supposed to reach it
-        let housePosition = MapManager.shared.getCurrentHousePosition()
-        for position in roadPath {
-            if position != housePosition && pathfindingGrid.isBlocked(at: position) {
-                print("⛔ Road is blocked at \(position)!")
-                return true
-            }
-        }
-        return false
-    }
-
     private func recalculateBugPaths() {
         print("🔄 Recalculating bug paths for \(bugs.count) bugs")
+        let roadPath = MapManager.shared.getCurrentRoadPath()
+
         for bug in bugs {
-            let path: [GridPosition]?
-            if bug.bugType.canFly {
-                // Flying bugs take direct path
-                path = pathfindingGrid.findFlyingPath(
-                    from: bug.gridPosition,
-                    to: MapManager.shared.getCurrentHousePosition()
-                )
-            } else {
-                // Ground bugs follow the road, but pathfind around obstacles if needed
-                let roadPath = MapManager.shared.getCurrentRoadPath()
-
-                // Check if the road is blocked by walls
-                if isRoadPathBlocked(roadPath) {
-                    // Road is blocked, use A* pathfinding
-                    print("🚧 [Recalc] Road is blocked! Using A* pathfinding for \(bug.bugType) at \(bug.gridPosition)")
-                    path = pathfindingGrid.findPath(
-                        from: bug.gridPosition,
-                        to: MapManager.shared.getCurrentHousePosition()
-                    )
-                } else {
-                    // Road is clear, use the predefined road path
-                    print("🛣️ [Recalc] Road is clear! Using predefined road path for \(bug.bugType) at \(bug.gridPosition)")
-                    path = roadPath
-                }
-            }
-
-            if let path = path {
-                bug.setPath(path)
-            }
+            // All bugs follow the predefined road path (towers cannot block roads)
+            print("🛣️ [Recalc] Using predefined road path for \(bug.bugType) at \(bug.gridPosition)")
+            bug.setPath(roadPath)
         }
     }
 
@@ -1099,86 +1163,95 @@ public class GameScene: SKScene {
     }
 
     private func showCardRewardPopup(_ card: Card) {
-        // Create a semi-transparent overlay
+        // Create a semi-transparent overlay (camera-relative)
         let overlay = SKShapeNode(rectOf: size)
         overlay.fillColor = SKColor.black.withAlphaComponent(0.8)
-        overlay.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        overlay.position = CGPoint(x: 0, y: 0)
         overlay.name = "cardRewardOverlay"
+        overlay.zPosition = 1000
 
         // Title
         let title = SKLabelNode(fontNamed: "Helvetica-Bold")
-        title.text = "🎉 NEW CARD EARNED! 🎉"
-        title.fontSize = 36
+        title.text = "NEW CARD!"
+        title.fontSize = 24
         title.fontColor = .yellow
-        title.position = CGPoint(x: size.width / 2, y: size.height / 2 + 120)
+        title.position = CGPoint(x: 0, y: 80)
         title.name = "cardRewardOverlay"
+        title.zPosition = 1001
 
-        // Card display box
-        let cardBox = SKShapeNode(rectOf: CGSize(width: 300, height: 200), cornerRadius: 15)
+        // Card display box (smaller)
+        let cardBox = SKShapeNode(rectOf: CGSize(width: 220, height: 160), cornerRadius: 12)
         let color = card.rarity.color
         cardBox.fillColor = SKColor(red: color.r, green: color.g, blue: color.b, alpha: 0.4)
         cardBox.strokeColor = SKColor(red: color.r, green: color.g, blue: color.b, alpha: 1.0)
-        cardBox.lineWidth = 4
-        cardBox.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        cardBox.lineWidth = 3
+        cardBox.position = CGPoint(x: 0, y: 0)
         cardBox.name = "cardRewardOverlay"
+        cardBox.zPosition = 1001
 
-        // Card emoji
+        // Card emoji (smaller)
         let emoji = SKLabelNode(fontNamed: "Helvetica")
         emoji.text = card.emoji
-        emoji.fontSize = 60
-        emoji.position = CGPoint(x: size.width / 2, y: size.height / 2 + 30)
+        emoji.fontSize = 40
+        emoji.position = CGPoint(x: 0, y: 20)
         emoji.name = "cardRewardOverlay"
+        emoji.zPosition = 1002
 
-        // Card name
+        // Card name (smaller)
         let name = SKLabelNode(fontNamed: "Helvetica-Bold")
         name.text = card.name
-        name.fontSize = 22
+        name.fontSize = 16
         name.fontColor = .white
-        name.position = CGPoint(x: size.width / 2, y: size.height / 2 - 30)
+        name.position = CGPoint(x: 0, y: -20)
         name.name = "cardRewardOverlay"
+        name.zPosition = 1002
 
-        // Card rarity
+        // Card rarity (smaller)
         let rarity = SKLabelNode(fontNamed: "Helvetica")
         rarity.text = card.rarity.rawValue
-        rarity.fontSize = 16
+        rarity.fontSize = 12
         rarity.fontColor = SKColor(red: color.r, green: color.g, blue: color.b, alpha: 1.0)
-        rarity.position = CGPoint(x: size.width / 2, y: size.height / 2 - 60)
+        rarity.position = CGPoint(x: 0, y: -42)
         rarity.name = "cardRewardOverlay"
+        rarity.zPosition = 1002
 
-        // Card description
+        // Card description (smaller and wrapped)
         let description = SKLabelNode(fontNamed: "Helvetica")
         description.text = card.description
-        description.fontSize = 14
+        description.fontSize = 10
         description.fontColor = .lightGray
-        description.position = CGPoint(x: size.width / 2, y: size.height / 2 - 85)
-        description.preferredMaxLayoutWidth = 280
+        description.position = CGPoint(x: 0, y: -60)
+        description.preferredMaxLayoutWidth = 200
+        description.numberOfLines = 2
         description.name = "cardRewardOverlay"
+        description.zPosition = 1002
 
-        // Close button
+        // Close button (smaller and higher up)
         let closeButton = Button(
             text: "Continue",
-            size: CGSize(width: 150, height: 50),
+            size: CGSize(width: 120, height: 40),
             color: .green
         )
-        closeButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 150)
+        closeButton.position = CGPoint(x: 0, y: -110)
         closeButton.name = "cardRewardOverlay"
+        closeButton.zPosition = 1002
         closeButton.onTap = { [weak self] in
             self?.dismissCardRewardPopup()
         }
 
-        addChild(overlay)
-        addChild(title)
-        addChild(cardBox)
-        addChild(emoji)
-        addChild(name)
-        addChild(rarity)
-        addChild(description)
-        addChild(closeButton)
+        gameCamera.addChild(overlay)
+        gameCamera.addChild(title)
+        gameCamera.addChild(cardBox)
+        gameCamera.addChild(emoji)
+        gameCamera.addChild(name)
+        gameCamera.addChild(rarity)
+        gameCamera.addChild(description)
+        gameCamera.addChild(closeButton)
     }
 
     private func dismissCardRewardPopup() {
-        // Remove all popup elements
-        enumerateChildNodes(withName: "cardRewardOverlay") { node, _ in
+        // Remove all popup elements from camera
+        gameCamera.enumerateChildNodes(withName: "cardRewardOverlay") { node, _ in
             node.removeFromParent()
         }
     }
@@ -1222,62 +1295,42 @@ public class GameScene: SKScene {
         tierProgressionUI = nil
     }
 
+    private var tierCompletionPopup: TierCompletionPopup?
+
     private func showTierCompletionPopup() {
-        guard let nextTier = TierProgressionManager.shared.getNextTier(after: gameState.currentWave) else {
-            // Reached the end, no more tiers
-            return
-        }
-
-        // Create celebration popup for tier completion
-        let overlay = SKShapeNode(rectOf: size)
-        overlay.fillColor = SKColor.black.withAlphaComponent(0.8)
-        overlay.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        overlay.name = "tierCompletionOverlay"
-
-        let title = SKLabelNode(fontNamed: "Helvetica-Bold")
-        title.text = "🏆 TIER COMPLETED! 🏆"
-        title.fontSize = 40
-        title.fontColor = .yellow
-        title.position = CGPoint(x: size.width / 2, y: size.height / 2 + 80)
-        title.name = "tierCompletionOverlay"
-
         let currentTier = TierProgressionManager.shared.getCurrentTier(for: gameState.currentWave)
-        let subtitle = SKLabelNode(fontNamed: "Helvetica")
-        subtitle.text = "You completed: \(currentTier.icon) \(currentTier.name)"
-        subtitle.fontSize = 20
-        subtitle.fontColor = .white
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height / 2 + 30)
-        subtitle.name = "tierCompletionOverlay"
+        let nextTier = TierProgressionManager.shared.getNextTier(after: gameState.currentWave)
 
-        let nextInfo = SKLabelNode(fontNamed: "Helvetica-Bold")
-        nextInfo.text = "Next: \(nextTier.icon) \(nextTier.name)"
-        nextInfo.fontSize = 24
-        nextInfo.fontColor = .green
-        nextInfo.position = CGPoint(x: size.width / 2, y: size.height / 2 - 20)
-        nextInfo.name = "tierCompletionOverlay"
+        // Pause the game
+        hud.isPaused = true
 
-        let continueButton = Button(
-            text: "Continue",
-            size: CGSize(width: 150, height: 50),
-            color: .green
+        // Reset all towers
+        resetAllTowers()
+
+        // Select new random map for next tier
+        MapManager.shared.selectRandomMap()
+        redrawGrid()
+
+        // Create and show the tier completion popup
+        tierCompletionPopup?.removeFromParent()
+        tierCompletionPopup = TierCompletionPopup(
+            size: size,
+            completedTier: currentTier,
+            nextTier: nextTier,
+            onContinue: { [weak self] in
+                self?.closeTierCompletionPopup()
+            }
         )
-        continueButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 80)
-        continueButton.name = "tierCompletionOverlay"
-        continueButton.onTap = { [weak self] in
-            self?.dismissTierCompletionPopup()
-        }
+        tierCompletionPopup!.zPosition = 1000
+        gameCamera.addChild(tierCompletionPopup!)
 
-        addChild(overlay)
-        addChild(title)
-        addChild(subtitle)
-        addChild(nextInfo)
-        addChild(continueButton)
+        print("🎉 Tier \(currentTier.number) completed! Moving to tier \(nextTier?.number ?? 0)")
     }
 
-    private func dismissTierCompletionPopup() {
-        enumerateChildNodes(withName: "tierCompletionOverlay") { node, _ in
-            node.removeFromParent()
-        }
+    private func closeTierCompletionPopup() {
+        tierCompletionPopup?.removeFromParent()
+        tierCompletionPopup = nil
+        // Game remains paused - player can place towers and manually start next wave
     }
 
     // MARK: - Module Drops
