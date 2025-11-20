@@ -81,9 +81,9 @@ final class BugDefenseTests: XCTestCase {
         XCTAssertEqual(StructureType.basicTower.cost, 50)
         XCTAssertEqual(StructureType.basicTower.health, 100)
 
-        // Test wall
-        XCTAssertEqual(StructureType.wall.cost, 20)
-        XCTAssertEqual(StructureType.wall.health, 200)
+        // Test sniper tower
+        XCTAssertEqual(StructureType.sniperTower.cost, 100)
+        XCTAssertGreaterThan(StructureType.sniperTower.health, 0)
     }
 
     @MainActor
@@ -119,5 +119,68 @@ final class BugDefenseTests: XCTestCase {
 
         XCTAssertEqual(gameState.currentWave, 1)
         XCTAssertGreaterThan(waveManager.getBugsRemaining(), 0)
+    }
+
+    @MainActor
+    func testBugSpawningWithRoadPath() {
+        // Test 1: Ground bug receives and follows road path
+        let startPos = GridPosition(x: 0, y: 0)
+        let antBug = Bug(type: .ant, at: startPos, wave: 1, difficulty: .normal)
+
+        // Create a simple test road path
+        let roadPath = [
+            GridPosition(x: 0, y: 0),
+            GridPosition(x: 1, y: 0),
+            GridPosition(x: 2, y: 0),
+            GridPosition(x: 3, y: 0),
+            GridPosition(x: 4, y: 0)
+        ]
+
+        // Bug should accept road path and position at first waypoint
+        antBug.setPath(roadPath)
+        XCTAssertEqual(antBug.gridPosition, roadPath.first)
+
+        // Test 2: Flying bug uses road path (not special flying behavior)
+        let mosquitoBug = Bug(type: .mosquito, at: startPos, wave: 1, difficulty: .normal)
+        XCTAssertTrue(mosquitoBug.bugType.canFly, "Mosquito should have canFly = true")
+
+        // Flying bug should receive same road path as ground bugs
+        mosquitoBug.setPath(roadPath)
+        XCTAssertEqual(mosquitoBug.gridPosition, roadPath.first)
+
+        // Test 3: Another flying bug (wasp) also uses road path
+        let waspBug = Bug(type: .wasp, at: startPos, wave: 1, difficulty: .normal)
+        XCTAssertTrue(waspBug.bugType.canFly, "Wasp should have canFly = true")
+
+        waspBug.setPath(roadPath)
+        XCTAssertEqual(waspBug.gridPosition, roadPath.first)
+
+        // Test 4: Multiple waypoints handled correctly
+        let extendedRoadPath = [
+            GridPosition(x: 0, y: 0),
+            GridPosition(x: 1, y: 0),
+            GridPosition(x: 2, y: 0),
+            GridPosition(x: 3, y: 0),
+            GridPosition(x: 4, y: 0),
+            GridPosition(x: 5, y: 0),
+            GridPosition(x: 6, y: 0),
+            GridPosition(x: 7, y: 0),
+            GridPosition(x: 8, y: 0),
+            GridPosition(x: 9, y: 0)
+        ]
+
+        let beetleBug = Bug(type: .beetle, at: startPos, wave: 1, difficulty: .normal)
+        beetleBug.setPath(extendedRoadPath)
+        XCTAssertEqual(beetleBug.gridPosition, extendedRoadPath.first)
+
+        // Test 5: Verify MapManager provides valid road path
+        let roadPathFromManager = MapManager.shared.getCurrentRoadPath()
+        XCTAssertFalse(roadPathFromManager.isEmpty, "Road path from MapManager should not be empty")
+        XCTAssertGreaterThan(roadPathFromManager.count, 1, "Road path should have multiple waypoints")
+
+        // Test 6: Bug spawned with MapManager road path
+        let spiderBug = Bug(type: .spider, at: startPos, wave: 1, difficulty: .normal)
+        spiderBug.setPath(roadPathFromManager)
+        XCTAssertEqual(spiderBug.gridPosition, roadPathFromManager.first)
     }
 }
