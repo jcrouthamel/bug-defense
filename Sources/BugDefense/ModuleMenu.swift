@@ -199,6 +199,31 @@ class ModuleMenu: SKNode {
             return
         }
 
+        // Check tab buttons
+        for tab in ModuleTab.allCases {
+            if let button = childNode(withName: "tab_\(tab.rawValue)") as? Button,
+               button.contains(location) {
+                button.onTap?()
+                return
+            }
+        }
+
+        // Forward to active view
+        switch currentTab {
+        case .inventory:
+            if !inventoryView.isHidden {
+                inventoryView.mouseDown(with: event)
+            }
+        case .shop:
+            if !shopView.isHidden {
+                shopView.mouseDown(with: event)
+            }
+        case .merge:
+            if !mergeView.isHidden {
+                mergeView.mouseDown(with: event)
+            }
+        }
+
         // Block clicks from passing through
     }
     #elseif os(iOS)
@@ -210,6 +235,31 @@ class ModuleMenu: SKNode {
         if closeButton.contains(location) {
             closeButton.onTap?()
             return
+        }
+
+        // Check tab buttons
+        for tab in ModuleTab.allCases {
+            if let button = childNode(withName: "tab_\(tab.rawValue)") as? Button,
+               button.contains(location) {
+                button.onTap?()
+                return
+            }
+        }
+
+        // Forward to active view
+        switch currentTab {
+        case .inventory:
+            if !inventoryView.isHidden {
+                inventoryView.touchesBegan(touches, with: event)
+            }
+        case .shop:
+            if !shopView.isHidden {
+                shopView.touchesBegan(touches, with: event)
+            }
+        case .merge:
+            if !mergeView.isHidden {
+                mergeView.touchesBegan(touches, with: event)
+            }
         }
 
         // Block taps from passing through
@@ -252,7 +302,7 @@ class ModuleInventoryView: SKNode {
         title.text = "Your Modules (\(moduleManager.inventory.count))"
         title.fontSize = CGFloat(24)
         title.fontColor = .white
-        title.position = CGPoint(x: CGFloat(viewFrame.midX), y: CGFloat(viewFrame.maxY) - 30)
+        title.position = CGPoint(x: 0, y: CGFloat(viewFrame.maxY) - 30)
         addChild(title)
 
         refresh()
@@ -276,7 +326,7 @@ class ModuleInventoryView: SKNode {
             emptyLabel.text = "No modules yet. Defeat bugs to get module drops!"
             emptyLabel.fontSize = CGFloat(18)
             emptyLabel.fontColor = .gray
-            emptyLabel.position = CGPoint(x: CGFloat(viewFrame.midX), y: CGFloat(viewFrame.midY))
+            emptyLabel.position = CGPoint(x: 0, y: 0)
             emptyLabel.name = "moduleItem"
             addChild(emptyLabel)
             return
@@ -317,7 +367,7 @@ class ModuleInventoryView: SKNode {
         let emoji: SKLabelNode = SKLabelNode(fontNamed: "Helvetica")
         emoji.text = module.type.emoji
         emoji.fontSize = CGFloat(32)
-        emoji.position = CGPoint(x: -halfWidth + 50, y: -10)
+        emoji.position = CGPoint(x: -bgWidth / 2 + 40, y: -10)
         container.addChild(emoji)
 
         // Name and level
@@ -326,7 +376,7 @@ class ModuleInventoryView: SKNode {
         nameLabel.fontSize = CGFloat(18)
         nameLabel.fontColor = .white
         nameLabel.horizontalAlignmentMode = .left
-        nameLabel.position = CGPoint(x: -halfWidth + 90, y: 5)
+        nameLabel.position = CGPoint(x: -bgWidth / 2 + 80, y: 5)
         container.addChild(nameLabel)
 
         // Effect
@@ -337,7 +387,7 @@ class ModuleInventoryView: SKNode {
         effectLabel.horizontalAlignmentMode = .left
         effectLabel.preferredMaxLayoutWidth = bgWidth - 180  // Allow text to wrap within available space
         effectLabel.numberOfLines = 0  // Allow multiple lines
-        effectLabel.position = CGPoint(x: -halfWidth + 90, y: -15)
+        effectLabel.position = CGPoint(x: -bgWidth / 2 + 80, y: -15)
         container.addChild(effectLabel)
 
         // Tier badge
@@ -345,7 +395,7 @@ class ModuleInventoryView: SKNode {
         tierLabel.text = module.tier.rawValue
         tierLabel.fontSize = CGFloat(12)
         tierLabel.fontColor = SKColor(red: tierColor.r, green: tierColor.g, blue: tierColor.b, alpha: 1.0)
-        tierLabel.position = CGPoint(x: halfWidth - 80, y: -5)
+        tierLabel.position = CGPoint(x: bgWidth / 2 - 70, y: -5)
         container.addChild(tierLabel)
 
         return container
@@ -380,7 +430,7 @@ class ModuleShopView: SKNode {
         title.text = "Module Shop"
         title.fontSize = CGFloat(24)
         title.fontColor = .white
-        title.position = CGPoint(x: CGFloat(viewFrame.midX), y: CGFloat(viewFrame.maxY) - 30)
+        title.position = CGPoint(x: 0, y: CGFloat(viewFrame.maxY) - 30)
         addChild(title)
 
         // Coin to Gem converter
@@ -398,28 +448,27 @@ class ModuleShopView: SKNode {
         converterBg.fillColor = SKColor.purple.withAlphaComponent(0.3)
         converterBg.strokeColor = SKColor.purple
         converterBg.lineWidth = 2
-        let midX: CGFloat = CGFloat(viewFrame.midX)
-        converterBg.position = CGPoint(x: midX, y: converterY)
+        converterBg.position = CGPoint(x: 0, y: converterY)
         addChild(converterBg)
 
         let converterTitle: SKLabelNode = SKLabelNode(fontNamed: "Helvetica-Bold")
         converterTitle.text = "💎 Convert Coins to Gems"
         converterTitle.fontSize = CGFloat(18)
         converterTitle.fontColor = .white
-        converterTitle.position = CGPoint(x: midX, y: converterY + 20)
+        converterTitle.position = CGPoint(x: 0, y: converterY + 20)
         addChild(converterTitle)
 
         let rateLabel: SKLabelNode = SKLabelNode(fontNamed: "Helvetica")
         rateLabel.text = "Rate: 100 Coins = 1 Gem"
         rateLabel.fontSize = CGFloat(14)
         rateLabel.fontColor = .lightGray
-        rateLabel.position = CGPoint(x: midX, y: converterY - 5)
+        rateLabel.position = CGPoint(x: 0, y: converterY - 5)
         addChild(rateLabel)
 
         // Conversion buttons
         let amounts = [100, 500, 1000, 5000]
         let buttonSpacing: CGFloat = 110
-        let startX: CGFloat = midX - (CGFloat(amounts.count - 1) * buttonSpacing / 2)
+        let startX: CGFloat = -(CGFloat(amounts.count - 1) * buttonSpacing / 2)
 
         for (index, amount) in amounts.enumerated() {
             let gems = amount / GameConfiguration.coinToGemConversionRate
@@ -438,14 +487,13 @@ class ModuleShopView: SKNode {
 
     private func setupModulePurchases() {
         let purchaseY: CGFloat = CGFloat(viewFrame.maxY) - 200
-        let midX: CGFloat = CGFloat(viewFrame.midX)
         let minX: CGFloat = CGFloat(viewFrame.minX)
 
         let purchaseTitle: SKLabelNode = SKLabelNode(fontNamed: "Helvetica-Bold")
         purchaseTitle.text = "Purchase Modules"
         purchaseTitle.fontSize = CGFloat(20)
         purchaseTitle.fontColor = .white
-        purchaseTitle.position = CGPoint(x: midX, y: purchaseY)
+        purchaseTitle.position = CGPoint(x: 0, y: purchaseY)
         addChild(purchaseTitle)
 
         // Show purchase options for each module type
@@ -541,9 +589,7 @@ class ModuleShopView: SKNode {
         notification.text = text
         notification.fontSize = CGFloat(20)
         notification.fontColor = color
-        let midX: CGFloat = CGFloat(viewFrame.midX)
-        let midY: CGFloat = CGFloat(viewFrame.midY)
-        notification.position = CGPoint(x: midX, y: midY)
+        notification.position = CGPoint(x: 0, y: 0)
         addChild(notification)
 
         let fadeOut = SKAction.fadeOut(withDuration: 2.0)
@@ -554,6 +600,35 @@ class ModuleShopView: SKNode {
     func refresh() {
         // Refresh is handled by parent updating currency display
     }
+
+    #if os(macOS)
+    override func mouseDown(with event: NSEvent) {
+        let location = event.location(in: self)
+
+        // Check all child nodes for button clicks
+        let nodes = self.nodes(at: location)
+        for node in nodes {
+            if let button = node as? Button {
+                button.mouseDown(with: event)
+                return
+            }
+        }
+    }
+    #elseif os(iOS)
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+
+        // Check all child nodes for button taps
+        let nodes = self.nodes(at: location)
+        for node in nodes {
+            if let button = node as? Button {
+                button.touchesBegan(touches, with: event)
+                return
+            }
+        }
+    }
+    #endif
 }
 
 /// Merge view for combining modules
@@ -580,7 +655,6 @@ class ModuleMergeView: SKNode {
     }
 
     private func setupUI() {
-        let midX: CGFloat = CGFloat(viewFrame.midX)
         let maxY: CGFloat = CGFloat(viewFrame.maxY)
 
         // Title
@@ -588,14 +662,14 @@ class ModuleMergeView: SKNode {
         title.text = "Module Merging"
         title.fontSize = CGFloat(24)
         title.fontColor = .white
-        title.position = CGPoint(x: midX, y: maxY - 30)
+        title.position = CGPoint(x: 0, y: maxY - 30)
         addChild(title)
 
         let subtitle: SKLabelNode = SKLabelNode(fontNamed: "Helvetica")
         subtitle.text = "Combine 2 modules of the same type and level to upgrade"
         subtitle.fontSize = CGFloat(16)
         subtitle.fontColor = .lightGray
-        subtitle.position = CGPoint(x: midX, y: maxY - 55)
+        subtitle.position = CGPoint(x: 0, y: maxY - 55)
         addChild(subtitle)
 
         refresh()
@@ -608,8 +682,6 @@ class ModuleMergeView: SKNode {
         }
 
         let mergeablePairs = moduleManager.getMergeableModules()
-        let midX: CGFloat = CGFloat(viewFrame.midX)
-        let midY: CGFloat = CGFloat(viewFrame.midY)
         let maxY: CGFloat = CGFloat(viewFrame.maxY)
         let minY: CGFloat = CGFloat(viewFrame.minY)
 
@@ -619,7 +691,7 @@ class ModuleMergeView: SKNode {
             emptyLabel.numberOfLines = 2
             emptyLabel.fontSize = CGFloat(18)
             emptyLabel.fontColor = .gray
-            emptyLabel.position = CGPoint(x: midX, y: midY)
+            emptyLabel.position = CGPoint(x: 0, y: 0)
             emptyLabel.name = "mergeContent"
             addChild(emptyLabel)
             return
@@ -629,7 +701,7 @@ class ModuleMergeView: SKNode {
         var y: CGFloat = maxY - 100
 
         for (module1, module2) in mergeablePairs.prefix(8) {
-            let mergeItem = createMergeItem(module1: module1, module2: module2, at: CGPoint(x: midX, y: y))
+            let mergeItem = createMergeItem(module1: module1, module2: module2, at: CGPoint(x: 0, y: y))
             mergeItem.name = "mergeContent"
             addChild(mergeItem)
 
@@ -761,9 +833,7 @@ class ModuleMergeView: SKNode {
         notification.text = text
         notification.fontSize = CGFloat(20)
         notification.fontColor = color
-        let midX: CGFloat = CGFloat(viewFrame.midX)
-        let midY: CGFloat = CGFloat(viewFrame.midY)
-        notification.position = CGPoint(x: midX, y: midY)
+        notification.position = CGPoint(x: 0, y: 0)
         notification.name = "mergeContent"
         addChild(notification)
 
@@ -771,4 +841,33 @@ class ModuleMergeView: SKNode {
         let remove = SKAction.removeFromParent()
         notification.run(SKAction.sequence([fadeOut, remove]))
     }
+
+    #if os(macOS)
+    override func mouseDown(with event: NSEvent) {
+        let location = event.location(in: self)
+
+        // Check all child nodes for button clicks
+        let nodes = self.nodes(at: location)
+        for node in nodes {
+            if let button = node as? Button {
+                button.mouseDown(with: event)
+                return
+            }
+        }
+    }
+    #elseif os(iOS)
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+
+        // Check all child nodes for button taps
+        let nodes = self.nodes(at: location)
+        for node in nodes {
+            if let button = node as? Button {
+                button.touchesBegan(touches, with: event)
+                return
+            }
+        }
+    }
+    #endif
 }

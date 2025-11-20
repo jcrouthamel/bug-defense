@@ -86,17 +86,21 @@ class UpgradeMenu: SKNode {
     #endif
 
     private func setupUpgradeTrees(size: CGSize) {
+        // Camera-relative coordinates (center at 0,0)
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+
         let title = SKLabelNode(fontNamed: "Helvetica-Bold")
         title.text = "⚔️ UPGRADE TREES ⚔️"
         title.fontSize = 32
         title.fontColor = .yellow
-        title.position = CGPoint(x: size.width / 2, y: size.height - 90)
+        title.position = CGPoint(x: 0, y: halfHeight - 90)
         addChild(title)
 
         let treeWidth: CGFloat = 250
         let treeHeight: CGFloat = 450
         let spacing: CGFloat = 20
-        let startX = (size.width - (treeWidth * 3 + spacing * 2)) / 2
+        let startX = -(treeWidth * 3 + spacing * 2) / 2
 
         // Attack Tree
         attackTreeDisplay = UpgradeTreeDisplay(
@@ -105,7 +109,7 @@ class UpgradeMenu: SKNode {
             size: CGSize(width: treeWidth, height: treeHeight),
             upgradeManager: upgradeManager
         )
-        attackTreeDisplay.position = CGPoint(x: startX + treeWidth / 2, y: size.height / 2)
+        attackTreeDisplay.position = CGPoint(x: startX + treeWidth / 2, y: 0)
         addChild(attackTreeDisplay)
 
         // Defense Tree
@@ -117,7 +121,7 @@ class UpgradeMenu: SKNode {
         )
         defenseTreeDisplay.position = CGPoint(
             x: startX + treeWidth * 1.5 + spacing,
-            y: size.height / 2
+            y: 0
         )
         addChild(defenseTreeDisplay)
 
@@ -130,7 +134,7 @@ class UpgradeMenu: SKNode {
         )
         speedTreeDisplay.position = CGPoint(
             x: startX + treeWidth * 2.5 + spacing * 2,
-            y: size.height / 2
+            y: 0
         )
         addChild(speedTreeDisplay)
     }

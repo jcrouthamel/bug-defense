@@ -239,7 +239,16 @@ class Bug: SKShapeNode {
 
     func setPath(_ path: [GridPosition]) {
         self.movementPath = path
-        self.pathIndex = 0
+
+        // Ensure bug starts exactly at the first waypoint
+        if let firstWaypoint = path.first {
+            self.gridPosition = firstWaypoint
+            self.position = firstWaypoint.toWorldPosition()
+            // Since we're already at waypoint 0, target waypoint 1 next
+            self.pathIndex = 1
+        } else {
+            self.pathIndex = 0
+        }
     }
 
     func update(deltaTime: TimeInterval, pathfindingGrid: PathfindingGrid) {
@@ -269,20 +278,26 @@ class Bug: SKShapeNode {
         let distance = sqrt(dx * dx + dy * dy)
 
         if distance < 2 {
-            // Reached waypoint
+            // Reached waypoint - snap to exact position
+            position = targetWorldPos
             gridPosition = targetGridPos
             pathIndex += 1
-            print("🐛 Bug \(bugType) reached waypoint \(pathIndex-1)/\(movementPath.count) at \(gridPosition)")
 
             // Don't recalculate path for ground bugs - they follow the predefined road
             // Only flying bugs use dynamic pathfinding
             // (This preserves the winding road mechanic)
         } else {
-            // Move toward waypoint
             let moveDistance = moveSpeed * slowFactor * CGFloat(deltaTime)
-            let ratio = min(moveDistance / distance, 1.0)
-            position.x += dx * ratio
-            position.y += dy * ratio
+
+            // 🐛 Use normalized vector movement for all directions
+            // This ensures bugs move in a straight line toward the target waypoint,
+            // keeping them precisely on the path regardless of segment orientation.
+            // The direction vector (dx, dy) is normalized by dividing by distance,
+            // then scaled by moveDistance to maintain consistent speed.
+            let normalizedDx = dx / distance
+            let normalizedDy = dy / distance
+            position.x += normalizedDx * moveDistance
+            position.y += normalizedDy * moveDistance
         }
     }
 

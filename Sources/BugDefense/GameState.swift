@@ -115,9 +115,13 @@ class GameStateManager {
     }
 
     func checkVictory() {
-        if currentWave >= GameConfiguration.totalWaves && currentState == .building {
-            changeState(to: .victory)
-        }
+        // Victory is disabled - game continues indefinitely with new maps every 100 waves
+        // No victory condition anymore
+    }
+
+    /// Check if we should reset for a new 100-wave cycle
+    func shouldResetForNewCycle() -> Bool {
+        return currentWave >= GameConfiguration.totalWaves
     }
 
     func reset() {
@@ -125,5 +129,15 @@ class GameStateManager {
         currentWave = 0
         currency = Int(CGFloat(GameConfiguration.startingCurrency) * difficulty.startingCurrencyMultiplier)
         houseHealth = Int(CGFloat(GameConfiguration.houseMaxHealth) * difficulty.houseHealthMultiplier)
+    }
+
+    /// Reset only wave counter and health for new map cycle (keeps currency and other progress)
+    func resetForNewCycle() {
+        currentState = .building
+        currentWave = 0
+        houseHealth = Int(CGFloat(GameConfiguration.houseMaxHealth) * difficulty.houseHealthMultiplier)
+        onWaveChanged?(currentWave)
+        onHealthChanged?(houseHealth)
+        print("🔄 Starting new 100-wave cycle - Wave counter and health reset")
     }
 }

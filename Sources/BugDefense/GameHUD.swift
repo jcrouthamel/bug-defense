@@ -26,6 +26,8 @@ class GameHUD: SKNode {
     private let modulesButton: Button
     private let tierProgressButton: Button
     private let heroControlButton: Button
+    private let nukeButton: Button
+    private let powerUpButton: Button
 
     // Tower buttons (12 total)
     private var towerButtons: [StructureType: TowerButton] = [:]
@@ -50,6 +52,10 @@ class GameHUD: SKNode {
     private let onOpenModules: () -> Void
     private let onOpenTierProgress: () -> Void
     private let onToggleHeroControl: () -> Void
+    private let onActivateNuke: () -> Void
+    private let hasUsedNuke: () -> Bool
+    private let onActivatePowerUp: () -> Void
+    private let getAvailablePowerUps: () -> Int
 
     init(
         size: CGSize,
@@ -61,7 +67,11 @@ class GameHUD: SKNode {
         onOpenCards: @escaping () -> Void,
         onOpenModules: @escaping () -> Void,
         onOpenTierProgress: @escaping () -> Void,
-        onToggleHeroControl: @escaping () -> Void
+        onToggleHeroControl: @escaping () -> Void,
+        onActivateNuke: @escaping () -> Void,
+        hasUsedNuke: @escaping () -> Bool,
+        onActivatePowerUp: @escaping () -> Void,
+        getAvailablePowerUps: @escaping () -> Int
     ) {
         self.gameState = gameState
         self.onTowerSelected = onTowerSelected
@@ -72,6 +82,10 @@ class GameHUD: SKNode {
         self.onOpenModules = onOpenModules
         self.onOpenTierProgress = onOpenTierProgress
         self.onToggleHeroControl = onToggleHeroControl
+        self.onActivateNuke = onActivateNuke
+        self.hasUsedNuke = hasUsedNuke
+        self.onActivatePowerUp = onActivatePowerUp
+        self.getAvailablePowerUps = getAvailablePowerUps
 
         // Create labels
         self.currencyLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
@@ -150,6 +164,18 @@ class GameHUD: SKNode {
             color: .systemIndigo
         )
 
+        self.nukeButton = Button(
+            text: "Nuke",
+            size: CGSize(width: standardButtonWidth, height: buttonHeight),
+            color: .systemRed
+        )
+
+        self.powerUpButton = Button(
+            text: "⚡ 0",
+            size: CGSize(width: standardButtonWidth, height: buttonHeight),
+            color: .systemYellow
+        )
+
         super.init()
 
         // Position labels (camera-relative coordinates)
@@ -172,8 +198,8 @@ class GameHUD: SKNode {
         addChild(buildTimerLabel)
 
         // Position top menu buttons with uniform spacing (camera-relative, shifted left)
-        let buttonSpacing: CGFloat = 95  // 85 width + 10 gap
-        let leftShift: CGFloat = 80  // Shift all buttons to the left
+        let buttonSpacing: CGFloat = 80  // Reduced from 95 to fit 9 buttons
+        let leftShift: CGFloat = 60  // Reduced from 80 to give more room
         let rightEdge = halfWidth - 42.5 - leftShift  // Half of button width from camera center
 
         gameControlsDropdown.position = CGPoint(x: rightEdge, y: halfHeight - 30)
@@ -183,6 +209,8 @@ class GameHUD: SKNode {
         modulesButton.position = CGPoint(x: rightEdge - buttonSpacing * 4, y: halfHeight - 30)
         tierProgressButton.position = CGPoint(x: rightEdge - buttonSpacing * 5, y: halfHeight - 30)
         heroControlButton.position = CGPoint(x: rightEdge - buttonSpacing * 6, y: halfHeight - 30)
+        nukeButton.position = CGPoint(x: rightEdge - buttonSpacing * 7, y: halfHeight - 30)
+        powerUpButton.position = CGPoint(x: rightEdge - buttonSpacing * 8, y: halfHeight - 30)
 
         addChild(gameControlsDropdown)
         addChild(upgradeButton)
@@ -191,6 +219,8 @@ class GameHUD: SKNode {
         addChild(modulesButton)
         addChild(tierProgressButton)
         addChild(heroControlButton)
+        addChild(nukeButton)
+        addChild(powerUpButton)
 
         // Create toggle button for top menu (camera-relative, shifted left)
         topMenuToggleButton = Button(
@@ -199,7 +229,7 @@ class GameHUD: SKNode {
             color: .systemGreen
         )
         topMenuToggleButton.position = CGPoint(
-            x: halfWidth - 30 - leftShift,
+            x: halfWidth - 30 - 60,  // Using updated leftShift value
             y: halfHeight - 30
         )
         topMenuToggleButton.onTap = { [weak self] in
@@ -222,7 +252,7 @@ class GameHUD: SKNode {
         // Camera-relative positioning
         let halfWidth = screenSize.width / 2
         let halfHeight = screenSize.height / 2
-        let leftShift: CGFloat = 80  // Shift tower panel to the left
+        let leftShift: CGFloat = 60  // Updated to match top menu buttons
 
         // Create toggle button for tower panel (camera-relative, shifted left)
         towerPanelToggleButton = Button(
@@ -303,6 +333,8 @@ class GameHUD: SKNode {
         modulesButton.isHidden = topMenuCollapsed
         tierProgressButton.isHidden = topMenuCollapsed
         heroControlButton.isHidden = topMenuCollapsed
+        nukeButton.isHidden = topMenuCollapsed
+        powerUpButton.isHidden = topMenuCollapsed
     }
 
     private func setupButtonCallbacks() {
@@ -332,6 +364,40 @@ class GameHUD: SKNode {
         heroControlButton.onTap = { [weak self] in
             self?.onToggleHeroControl()
         }
+
+        nukeButton.onTap = { [weak self] in
+            guard let self = self else { return }
+            if self.hasUsedNuke() {
+                print("💣 Nuke already used!")
+            } else {
+                self.onActivateNuke()
+                self.updateNukeButtonState()
+            }
+        }
+
+        powerUpButton.onTap = { [weak self] in
+            guard let self = self else { return }
+            let availablePowerUps = self.getAvailablePowerUps()
+            if availablePowerUps > 0 {
+                self.onActivatePowerUp()
+                self.updatePowerUpButtonState()
+            } else {
+                print("⚡ No power-ups available!")
+            }
+        }
+    }
+
+    private func updateNukeButtonState() {
+        if hasUsedNuke() {
+            nukeButton.updateText("Used")
+        } else {
+            nukeButton.updateText("Nuke")
+        }
+    }
+
+    private func updatePowerUpButtonState() {
+        let count = getAvailablePowerUps()
+        powerUpButton.updateText("⚡ \(count)")
     }
 
     private func updateDropdownMenuItems() {
@@ -392,10 +458,14 @@ class GameHUD: SKNode {
                 case .hard: .red
                 case .insane: .purple
                 }
+
+                let isLocked = gameState.currentWave > 0
+                let displayText = isLocked ? "🔒 \(gameState.difficulty.rawValue)" : "Difficulty: \(gameState.difficulty.rawValue)"
+
                 return DropdownMenuItem(
                     id: "difficulty",
-                    text: gameState.difficulty.rawValue,
-                    color: difficultyColor,
+                    text: displayText,
+                    color: isLocked ? .darkGray : difficultyColor,
                     action: { [weak self] in
                         guard let self = self else { return }
                         guard self.gameState.currentWave == 0 else {
@@ -422,6 +492,11 @@ class GameHUD: SKNode {
                     guard let self = self else { return }
                     self.gameState.toggleAdminMode()
                     self.updateDropdownMenuItems()
+
+                    // Update all tower buttons to reflect admin mode state
+                    for (_, button) in self.towerButtons {
+                        button.updateForWave(self.gameState.currentWave)
+                    }
                 }
             )
         ]
@@ -443,6 +518,14 @@ class GameHUD: SKNode {
 
     func updateGems(_ gems: Int) {
         gemsLabel.text = "💎 \(gems)"
+    }
+
+    func refreshPowerUpButton() {
+        updatePowerUpButtonState()
+    }
+
+    func isAdminModeActive() -> Bool {
+        return gameState.isAdminMode
     }
 
     func updateWave(_ wave: Int) {
@@ -468,12 +551,19 @@ class GameHUD: SKNode {
         // Check top menu buttons
         if gameControlsDropdown.contains(point) || upgradeButton.contains(point) ||
            researchLabButton.contains(point) || cardsButton.contains(point) ||
-           modulesButton.contains(point) || tierProgressButton.contains(point) {
+           modulesButton.contains(point) || tierProgressButton.contains(point) ||
+           heroControlButton.contains(point) || nukeButton.contains(point) ||
+           powerUpButton.contains(point) {
             return true
         }
 
         // Check tower panel toggle button
         if towerPanelToggleButton.contains(point) {
+            return true
+        }
+
+        // Check top menu toggle button
+        if topMenuToggleButton.contains(point) {
             return true
         }
 
@@ -486,6 +576,141 @@ class GameHUD: SKNode {
 
         return false
     }
+
+    #if os(macOS)
+    override func mouseDown(with event: NSEvent) {
+        let location = event.location(in: self)
+
+        // Check top menu buttons (only if not collapsed)
+        if !topMenuCollapsed {
+            if gameControlsDropdown.contains(location) {
+                gameControlsDropdown.mouseDown(with: event)
+                return
+            }
+            if upgradeButton.contains(location) {
+                upgradeButton.onTap?()
+                return
+            }
+            if researchLabButton.contains(location) {
+                researchLabButton.onTap?()
+                return
+            }
+            if cardsButton.contains(location) {
+                cardsButton.onTap?()
+                return
+            }
+            if modulesButton.contains(location) {
+                modulesButton.onTap?()
+                return
+            }
+            if tierProgressButton.contains(location) {
+                tierProgressButton.onTap?()
+                return
+            }
+            if heroControlButton.contains(location) {
+                heroControlButton.onTap?()
+                return
+            }
+            if nukeButton.contains(location) {
+                nukeButton.onTap?()
+                return
+            }
+            if powerUpButton.contains(location) {
+                powerUpButton.onTap?()
+                return
+            }
+        }
+
+        // Check top menu toggle button
+        if topMenuToggleButton.contains(location) {
+            topMenuToggleButton.onTap?()
+            return
+        }
+
+        // Check tower panel toggle button
+        if towerPanelToggleButton.contains(location) {
+            towerPanelToggleButton.onTap?()
+            return
+        }
+
+        // Check tower buttons (only if not collapsed)
+        if !towerPanelCollapsed {
+            for (_, button) in towerButtons {
+                if button.contains(location) {
+                    button.mouseDown(with: event)
+                    return
+                }
+            }
+        }
+    }
+    #elseif os(iOS)
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+
+        // Check top menu buttons (only if not collapsed)
+        if !topMenuCollapsed {
+            if gameControlsDropdown.contains(location) {
+                gameControlsDropdown.touchesBegan(touches, with: event)
+                return
+            }
+            if upgradeButton.contains(location) {
+                upgradeButton.onTap?()
+                return
+            }
+            if researchLabButton.contains(location) {
+                researchLabButton.onTap?()
+                return
+            }
+            if cardsButton.contains(location) {
+                cardsButton.onTap?()
+                return
+            }
+            if modulesButton.contains(location) {
+                modulesButton.onTap?()
+                return
+            }
+            if tierProgressButton.contains(location) {
+                tierProgressButton.onTap?()
+                return
+            }
+            if heroControlButton.contains(location) {
+                heroControlButton.onTap?()
+                return
+            }
+            if nukeButton.contains(location) {
+                nukeButton.onTap?()
+                return
+            }
+            if powerUpButton.contains(location) {
+                powerUpButton.onTap?()
+                return
+            }
+        }
+
+        // Check top menu toggle button
+        if topMenuToggleButton.contains(location) {
+            topMenuToggleButton.onTap?()
+            return
+        }
+
+        // Check tower panel toggle button
+        if towerPanelToggleButton.contains(location) {
+            towerPanelToggleButton.onTap?()
+            return
+        }
+
+        // Check tower buttons (only if not collapsed)
+        if !towerPanelCollapsed {
+            for (_, button) in towerButtons {
+                if button.contains(location) {
+                    button.touchesBegan(touches, with: event)
+                    return
+                }
+            }
+        }
+    }
+    #endif
 }
 
 /// Tower button that shows lock state and unlock requirements
@@ -542,7 +767,14 @@ class TowerButton: SKNode {
     }
 
     func updateForWave(_ wave: Int) {
-        isUnlocked = wave >= type.unlockWave
+        // Check if admin mode is active by looking for GameHUD in parent hierarchy
+        var isAdminMode = false
+        if let hud = parent as? GameHUD {
+            isAdminMode = hud.isAdminModeActive()
+        }
+
+        // Unlock if wave requirement met OR admin mode is active
+        isUnlocked = wave >= type.unlockWave || isAdminMode
         updateAppearance()
     }
 

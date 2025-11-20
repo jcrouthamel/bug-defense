@@ -69,6 +69,22 @@ class CardMenu: SKNode {
             return
         }
 
+        // Check if any slot view was clicked
+        for slotView in slotViews {
+            if slotView.contains(location) {
+                slotView.mouseDown(with: event)
+                return
+            }
+        }
+
+        // Check if any card list item was clicked
+        for cardView in cardListViews {
+            if cardView.contains(location) {
+                cardView.mouseDown(with: event)
+                return
+            }
+        }
+
         // Block clicks from passing through
     }
     #elseif os(iOS)
@@ -80,6 +96,22 @@ class CardMenu: SKNode {
         if closeButton.contains(location) {
             closeButton.onTap?()
             return
+        }
+
+        // Check if any slot view was tapped
+        for slotView in slotViews {
+            if slotView.contains(location) {
+                slotView.touchesBegan(touches, with: event)
+                return
+            }
+        }
+
+        // Check if any card list item was tapped
+        for cardView in cardListViews {
+            if cardView.contains(location) {
+                cardView.touchesBegan(touches, with: event)
+                return
+            }
         }
 
         // Block taps from passing through
@@ -443,9 +475,16 @@ class CardSlotView: SKNode {
 
     #if os(macOS)
     override func mouseDown(with event: NSEvent) {
-        if isUnlocked {
-            let location = event.location(in: self)
+        let location = event.location(in: self)
 
+        // Check if unlock button was clicked (for locked slots)
+        if !isUnlocked, let unlockBtn = unlockButton, unlockBtn.contains(location) {
+            unlockBtn.mouseDown(with: event)
+            return
+        }
+
+        // For unlocked slots
+        if isUnlocked {
             // Check if clicking on unequip button
             if let unequipNode = cardDisplay?.childNode(withName: "unequipButton"),
                unequipNode.contains(location) {
@@ -458,10 +497,17 @@ class CardSlotView: SKNode {
     }
     #elseif os(iOS)
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if isUnlocked {
-            guard let touch = touches.first else { return }
-            let location = touch.location(in: self)
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
 
+        // Check if unlock button was tapped (for locked slots)
+        if !isUnlocked, let unlockBtn = unlockButton, unlockBtn.contains(location) {
+            unlockBtn.touchesBegan(touches, with: event)
+            return
+        }
+
+        // For unlocked slots
+        if isUnlocked {
             // Check if tapping on unequip button
             if let unequipNode = cardDisplay?.childNode(withName: "unequipButton"),
                unequipNode.contains(location) {
@@ -473,6 +519,12 @@ class CardSlotView: SKNode {
         }
     }
     #endif
+
+    override func contains(_ point: CGPoint) -> Bool {
+        guard let parent = parent else { return false }
+        let localPoint = self.convert(point, from: parent)
+        return abs(localPoint.x) < 47.5 && abs(localPoint.y) < 65  // Half of slot size (95x130)
+    }
 }
 
 /// Card display in the collection list
@@ -547,4 +599,11 @@ class CardListItemView: SKNode {
         onTapped(card)
     }
     #endif
+
+    override func contains(_ point: CGPoint) -> Bool {
+        guard let parent = parent else { return false }
+        let localPoint = self.convert(point, from: parent)
+        // CardListItemView size is passed in init - using 220x65 as defined in drawCardsList
+        return abs(localPoint.x) < 110 && abs(localPoint.y) < 32.5
+    }
 }

@@ -119,6 +119,18 @@ class DropdownMenu: SKNode {
     #if os(macOS)
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
+
+        // Check if any menu item was clicked first (if menu is open)
+        if isOpen {
+            for item in menuItems {
+                if !item.isHidden && item.contains(location) {
+                    item.mouseDown(with: event)
+                    return
+                }
+            }
+        }
+
+        // Otherwise check if toggle button was clicked
         if toggleButton.contains(location) {
             toggle()
         }
@@ -127,6 +139,18 @@ class DropdownMenu: SKNode {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
+
+        // Check if any menu item was tapped first (if menu is open)
+        if isOpen {
+            for item in menuItems {
+                if !item.isHidden && item.contains(location) {
+                    item.touchesBegan(touches, with: event)
+                    return
+                }
+            }
+        }
+
+        // Otherwise check if toggle button was tapped
         if toggleButton.contains(location) {
             toggle()
         }
