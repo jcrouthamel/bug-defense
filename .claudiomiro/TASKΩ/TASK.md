@@ -1,199 +1,242 @@
-@dependencies [TASK0, TASK1, TASK2, TASK3, TASK4]
-# Task: Final Integration Verification and System Completeness
+@dependencies [TASK0, TASK1, TASK2, TASK3]
+# Task: Final Integration Verification and System Validation
 
 ## Summary
-Perform final system-level verification to ensure all components work together correctly, no requirements were missed, and the complete feature implementation meets the user's intent. This validates the entire road enforcement system holistically across code, behavior, and requirements.
+Perform comprehensive final validation that all requirements from AI_PROMPT.md have been met. This task verifies that the bug movement fix is complete, correct, and doesn't introduce regressions. It ensures system-level coherence across all changes and tests.
+
+**Why this matters:** This is the mandatory system-level validation step that confirms the entire fix works as a cohesive whole and satisfies all acceptance criteria. It's the final checkpoint before considering the work complete.
 
 ## Context Reference
 **For complete environment context, see:**
-- `../AI_PROMPT.md` - Contains full tech stack (Swift 5.x, SpriteKit), architecture, complete acceptance criteria, user's intent from clarifications, and related code patterns
+- `../AI_PROMPT.md` - Contains full acceptance criteria (Section 4), verification checklist (Section 6), and success definition (Section 1)
 
 **Task-Specific Context:**
-This is the mandatory final validation task that confirms system-wide completeness and correctness.
+This is a verification and validation task that depends on all previous tasks being complete.
 
-**Files This Task Will Touch:**
-- No code changes - this is a verification and traceability task
-- Review all changed files from TASK0-TASK3
-- Review test results from TASK4
+### Dependencies
+This task validates the outputs of:
+- **TASK0:** Analysis and root cause identification
+- **TASK1:** Implementation of vector-based movement fix
+- **TASK2:** Unit tests for movement logic
+- **TASK3:** Manual visual testing across maps
 
-**Integration Points:**
-Validates the complete feature stack:
-1. TASK0: Road placement blocking (foundation)
-2. TASK1: Bug spawn simplification (removes A* at spawn)
-3. TASK2: Path recalculation simplification (removes A* at transitions)
-4. TASK3: Dead code cleanup (maintains code quality)
-5. TASK4: Manual testing (validates observable behavior)
+### What This Task Verifies
+From AI_PROMPT.md Section 6 (Verification and Traceability):
+Every acceptance criterion must be explicitly addressed. This task cross-checks all 12 requirements against the implementation and test results.
 
 ## Complexity
-Medium (requires thorough cross-verification)
+Low
 
 ## Dependencies
-Depends on: [TASK0, TASK1, TASK2, TASK3, TASK4]
+Depends on: [TASK0, TASK1, TASK2, TASK3]
 Blocks: []
 Parallel with: []
 
 ## Detailed Steps
 
-### 1. Requirements Traceability Verification
-Using AI_PROMPT.md section 6 (Verification and Traceability Matrix), confirm:
+### 1. Verify All Previous Tasks Are Complete
+- [ ] TASK0 completed: Root cause analysis documented
+- [ ] TASK1 completed: Bug.swift modified with vector-based movement
+- [ ] TASK2 completed: Unit tests written and passing
+- [ ] TASK3 completed: Manual testing done with test report
 
-- [ ] **"Keep bugs on map path"**
-  - Implementation: TASK1 `spawnBug()` always uses roadPath
-  - Verification: TASK4 observed bugs following roads
+### 2. Cross-Reference Acceptance Criteria
+Verify each acceptance criterion from AI_PROMPT.md Section 4:
 
-- [ ] **"For each map type"**
-  - Implementation: Uses `MapManager.shared.getCurrentRoadPath()` (generic for all 20 maps)
-  - Verification: TASK4 tested Maps 1, 5, 9, 10, 11, 15, 20
+**A. Strict Path Adherence**
+- Source: TASK3 manual testing report
+- Verify: "Bugs remain visually on brown dirt road tiles at all times"
+- Status: ✅ / ❌
 
-- [ ] **"Road-only movement"**
-  - Implementation: TASK1 & TASK2 remove A* fallback
-  - Verification: TASK4 confirmed no A* behavior, code inspection in TASK3
+**B. Waypoint-to-Waypoint Movement**
+- Source: TASK1 implementation + TASK2 unit tests
+- Verify: pathIndex increments sequentially, bugs don't skip waypoints
+- Status: ✅ / ❌
 
-- [ ] **"Flying bugs on roads"**
-  - Implementation: TASK1 treats all bugs identically, no special flying logic
-  - Verification: TASK4 tested mosquito/wasp bugs following roads
+**C. Smooth Visual Motion**
+- Source: TASK3 manual testing report
+- Verify: No jerky or teleporting movement observed
+- Status: ✅ / ❌
 
-- [ ] **"Prevent road placement"**
-  - Implementation: TASK0 `canPlaceStructure()` road check
-  - Verification: TASK4 confirmed placement rejection with visual/console feedback
+**D. Exact Waypoint Arrival**
+- Source: TASK1 implementation (snap at distance < 2.0) + TASK2 tests
+- Verify: Position snaps to exact waypoint world position
+- Status: ✅ / ❌
 
-### 2. Acceptance Criteria Completeness
-Verify all criteria from AI_PROMPT.md section 4 are met:
+**E. Preserve Diagonal Path Segments**
+- Source: TASK3 Map 15 testing
+- Verify: Diagonal movement works correctly without drift
+- Status: ✅ / ❌
 
-**Primary Requirements (AC1-AC5):**
-- [ ] AC1: Cannot place towers on road (validated in TASK4)
-- [ ] AC2: Red preview on invalid placement (validated in TASK4)
-- [ ] AC3: No A* fallback (code changes in TASK1/TASK2, verified in TASK4)
-- [ ] AC4: Flying bugs follow roads (validated in TASK4)
-- [ ] AC5: Path recalculation simplified (implemented in TASK2)
+**F. Horizontal and Vertical Segments**
+- Source: TASK2 unit tests + TASK3 Map 9 testing
+- Verify: Orthogonal movement perfectly aligned
+- Status: ✅ / ❌
 
-**Edge Cases (EC1-EC4):**
-- [ ] EC1: Map transitions preserve protection (validated in TASK4)
-- [ ] EC2: House position protected (validated in TASK4)
-- [ ] EC3: Out-of-bounds rejected (validated in TASK4)
-- [ ] EC4: All 20 maps protected (spot-checked in TASK4)
+**G. No Regression**
+- Source: TASK3 regression testing section
+- Verify: Flying bugs and burrowing bugs unchanged
+- Status: ✅ / ❌
 
-**Code Quality (CQ1-CQ3):**
-- [ ] CQ1: Console logging consistent (validated in TASK4)
-- [ ] CQ2: No breaking changes (validated in TASK4)
-- [ ] CQ3: Dead code removed (completed in TASK3)
+**H. Speed Consistency**
+- Source: TASK1 implementation + TASK2 slow/fast bug tests
+- Verify: Movement respects moveSpeed * slowFactor * deltaTime
+- Status: ✅ / ❌
 
-### 3. Code Change Verification
-Inspect each changed file to confirm implementation correctness:
+**I. Grid Position Sync**
+- Source: TASK1 implementation + TASK2 tests
+- Verify: gridPosition updates when waypoint reached
+- Status: ✅ / ❌
 
-**GameScene.swift:**
-- [ ] `canPlaceStructure()` has road path check (TASK0)
-- [ ] Road check uses `MapManager.shared.getCurrentRoadPath().contains(position)`
-- [ ] Console log: "❌ Cannot place on road: \(position)"
-- [ ] `spawnBug()` no longer has `isRoadPathBlocked()` conditional (TASK1)
-- [ ] All bugs receive `roadPath` directly (TASK1)
-- [ ] `recalculateBugPaths()` no longer checks road blocking (TASK2)
-- [ ] `isRoadPathBlocked()` function removed or deprecated (TASK3)
-- [ ] No misleading comments about A* fallback remain (TASK3)
+**J. Edge Cases Handled**
+- Source: TASK2 unit tests + TASK3 manual testing
+- Verify: Slow bugs, fast bugs, starting position, various path types all work
+- Status: ✅ / ❌
 
-**Build Verification:**
-- [ ] Project builds successfully: `swift build`
-- [ ] No compiler warnings about unused code
-- [ ] No runtime errors during testing (confirmed in TASK4)
+**K. All Maps Work**
+- Source: TASK3 manual testing (Maps 1, 8, 9, 15)
+- Verify: Fix works across different map geometries without special-casing
+- Status: ✅ / ❌
 
-### 4. User Intent Alignment
-Reference AI_PROMPT.md section 9 (Context for Downstream Agent):
+**L. Performance**
+- Source: TASK1 implementation review
+- Verify: Only basic vector math, no expensive allocations or loops
+- Status: ✅ / ❌
 
-- [ ] **User's goal:** "Predictable gameplay where bugs always follow designed map paths"
-  - **Verified:** TASK4 confirmed predictable bug behavior
+### 3. Run Complete Test Suite
+Execute all tests to confirm everything passes:
 
-- [ ] **User's clarification:** "Prevent tower placement on roads" (not "bugs fail to spawn" or "keep A* fallback")
-  - **Verified:** TASK0 implements prevention approach
+```bash
+swift test
+```
 
-- [ ] **User's clarification:** "Current bug movement is fine" (keep smooth waypoint navigation)
-  - **Verified:** Bug.swift unchanged (TASK1-3 never modified movement logic)
+- Verify: All unit tests pass (0 failures)
+- Verify: TASK2 movement tests specifically pass
+- Check for: Any unexpected test failures
 
-- [ ] **User's clarification:** "Flying bugs follow roads" (same as ground bugs)
-  - **Verified:** TASK4 confirmed, no special flying logic added
+### 4. Build and Smoke Test
+Final build verification:
 
-### 5. System Integration Validation
-Cross-check interactions between components:
+```bash
+swift build
+```
 
-- [ ] **Tower placement → Bug spawning:** Prevented road placement ensures clear paths for bugs
-- [ ] **Map transitions → Path recalculation:** TASK2 ensures bugs update to new road when map changes
-- [ ] **Visual feedback → Validation logic:** Red preview matches `canPlaceStructure()` logic
-- [ ] **Console logging → Debug experience:** Consistent ❌/✅ patterns aid troubleshooting
-- [ ] **Flying bugs → Ground bugs:** Same behavior (no special cases introduced)
+- Verify: Clean build with no errors or warnings
+- Verify: Game launches successfully
+- Quick smoke test: Start wave on any map, verify bugs move correctly
 
-### 6. No Regressions Verification
-Confirm existing systems still work:
+### 5. Code Quality Review
+Review TASK1 changes in Bug.swift:
 
-- [ ] Bug movement smoothness preserved (axis-locking, waypoint-to-waypoint)
-- [ ] Tower attack behavior unchanged
-- [ ] Map path definitions unchanged (all 20 maps)
-- [ ] Camera and HUD systems unaffected
-- [ ] Tier progression system intact
-- [ ] House position protection still enforced
+- [ ] Code is clean and readable
+- [ ] No commented-out code or debug prints left behind
+- [ ] Comments explain key decisions (emoji prefixed with 🐛)
+- [ ] Follows Swift naming conventions
+- [ ] No unnecessary complexity
 
-### 7. Documentation and Traceability
-- [ ] All tasks (TASK0-TASK4) have clear documentation
-- [ ] Each task's acceptance criteria were met
-- [ ] Requirements matrix (AI_PROMPT.md section 6) fully satisfied
-- [ ] No requirements from AI_PROMPT.md were missed or skipped
+### 6. Documentation Completeness Check
+Verify documentation is complete:
 
-### 8. Final Self-Verification Checklist
-From AI_PROMPT.md section 6 (Self-Verification Checklist):
+- [ ] TASK0 has root cause analysis documented
+- [ ] TASK1 has clear code comments in Bug.swift
+- [ ] TASK2 has comprehensive test coverage
+- [ ] TASK3 has test report with findings
+- [ ] This TASKΩ has final validation checklist completed
 
-- [ ] All acceptance criteria (AC1-AC5) are met
-- [ ] All edge cases (EC1-EC4) are handled
-- [ ] Console logs match existing patterns
-- [ ] No hardcoded map-specific logic (works for all 20 maps)
-- [ ] Game builds without errors: `swift build`
-- [ ] Manual test: Place tower on road → rejected
-- [ ] Manual test: Bug spawns → follows road → reaches house
-- [ ] Manual test: Map changes at wave 10 → new road protected
-- [ ] Code is cleaner (removed dead A* fallback code)
+### 7. Requirement Traceability Matrix
+Create final traceability mapping:
+
+| Requirement | Implementation | Verification | Status |
+|-------------|----------------|--------------|--------|
+| Path adherence | TASK1 vector movement | TASK2 tests + TASK3 visual | ✅/❌ |
+| Waypoint-to-waypoint | TASK1 pathIndex logic | TASK2 tests | ✅/❌ |
+| Smooth motion | TASK1 normalized vector | TASK3 visual | ✅/❌ |
+| Exact arrival | TASK1 snap at distance < 2 | TASK2 tests | ✅/❌ |
+| Diagonal paths | TASK1 vector approach | TASK3 Map 15 | ✅/❌ |
+| Orthogonal paths | TASK1 vector approach | TASK2 + TASK3 | ✅/❌ |
+| No regression | TASK1 preserved code | TASK3 regression | ✅/❌ |
+| Speed consistency | TASK1 formula preserved | TASK2 slow/fast | ✅/❌ |
+| Grid sync | TASK1 gridPosition update | TASK2 tests | ✅/❌ |
+| Edge cases | TASK1 distance check | TASK2 edge tests | ✅/❌ |
+| All maps | TASK1 no special-casing | TASK3 multi-map | ✅/❌ |
+| Performance | TASK1 simple math | Code review | ✅/❌ |
+
+### 8. Self-Verification Checklist
+From AI_PROMPT.md Section 6:
+
+- [ ] **Code review:** Does the movement logic make geometric sense?
+- [ ] **Unit tests:** Do tests cover the critical cases?
+- [ ] **Manual testing:** Did you actually run the game and watch bugs?
+- [ ] **Multiple maps:** Did you test at least 3 different map types?
+- [ ] **Bug types:** Did you test with both slow and fast bugs?
+- [ ] **Code clarity:** Is the movement logic simple and understandable?
+- [ ] **No regressions:** Do flying bugs and burrowers still work?
+- [ ] **Documentation:** Are any complex decisions explained in comments?
+
+### 9. Final Decision
+Based on all verification steps:
+
+**Overall Status:** ✅ COMPLETE / ❌ INCOMPLETE / ⚠️ NEEDS REVIEW
+
+**Remaining Issues (if any):**
+- [List any outstanding issues or concerns]
+
+**Recommendations:**
+- [Any follow-up work or improvements suggested]
 
 ## Acceptance Criteria
-- [ ] All requirements from AI_PROMPT.md are traceable to implementation
-- [ ] All acceptance criteria from AI_PROMPT.md section 4 are verified complete
-- [ ] All tasks (TASK0-TASK4) completed successfully
-- [ ] No missing or overlooked requirements
-- [ ] User's intent (from clarifications in AI_PROMPT.md section 8) is fully satisfied
-- [ ] System integration verified (components work together correctly)
-- [ ] No regressions in existing systems
-- [ ] Code quality standards met (clean, consistent, no dead code)
-- [ ] Feature is production-ready
+- [ ] **All 12 acceptance criteria verified**: Each criterion from AI_PROMPT.md Section 4 has been checked and confirmed
+- [ ] **All tests passing**: `swift test` shows 0 failures
+- [ ] **Clean build**: `swift build` completes successfully
+- [ ] **Manual testing complete**: TASK3 report confirms visual quality
+- [ ] **No regressions found**: Flying and burrowing bugs work correctly
+- [ ] **Traceability matrix complete**: All requirements mapped to implementation and tests
+- [ ] **Code quality verified**: Bug.swift changes are clean and well-documented
+- [ ] **Self-verification checklist complete**: All 8 items checked
+- [ ] **Final status determined**: Clear COMPLETE/INCOMPLETE/NEEDS_REVIEW decision
 
 ## Code Review Checklist
-- [ ] Cross-reference all code changes against acceptance criteria
-- [ ] Verify test results (TASK4) cover all acceptance criteria
-- [ ] Confirm no requirements were merged, skipped, or forgotten
-- [ ] Validate that user's clarifications were correctly interpreted
-- [ ] Ensure simplification goal achieved (code is simpler, not more complex)
+N/A - This is a validation task that reviews outputs of previous tasks.
 
 ## Reasoning Trace
-**Why this task is mandatory:**
-Step0.2 decomposition requirements state: "Always create a Final Ω Task that depends on all others, verifies all modules interact correctly, ensures no requirement was forgotten, and confirms contracts, logs, tests, and flows align with system intent."
 
-**What makes this different from TASK4:**
-- **TASK4:** Validates observable behavior through manual testing
-- **TASKΩ:** Validates system completeness, requirements traceability, and cross-component integration
+**Why a separate validation task?**
+From the decomposition instructions: "Always create a Final Ω Task that depends on all others, verifies all modules interact correctly, ensures no requirement was forgotten."
 
-**Why all tasks must complete first:**
-Cannot verify system completeness until all implementation and testing tasks are done. This task provides the "zoom out" view to catch anything missed.
+This task serves as:
+1. **Integration checkpoint** - Verifies all pieces work together
+2. **Completeness check** - Ensures nothing was missed
+3. **Quality gate** - Final review before considering work done
+4. **Documentation** - Creates record of what was verified
+
+**What makes validation "complete"?**
+- All acceptance criteria explicitly checked (not assumed)
+- Tests actually run and pass (not just exist)
+- Manual testing actually performed (not just planned)
+- Traceability matrix shows clear path from requirement → implementation → verification
+
+**If validation fails:**
+This task should identify:
+- Which acceptance criteria are not met
+- Which tests are failing
+- Which requirements lack verification
+- What needs to be done to achieve completeness
+
+Then either:
+- Return to relevant TASK to fix issue
+- Escalate if issue requires design change
+- Document as known limitation if acceptable
 
 **Success criteria for this task:**
-- Every checkbox is checked ✅
-- No discrepancies between requirements and implementation
-- No gaps in test coverage
-- No overlooked edge cases
-- User's intent fully realized in code and behavior
+This task succeeds when we can confidently state:
+> "All requirements from AI_PROMPT.md have been implemented, tested, and verified. The bug movement fix is complete and correct."
 
-**If this task finds issues:**
-Document exactly what is missing or incorrect, then create follow-up tasks or fixes as needed. This task serves as the final quality gate.
+**Failure modes to catch:**
+- Tests written but not run
+- Requirements assumed but not tested
+- Visual testing skipped or incomplete
+- Regressions not checked
+- Performance not considered
+- Documentation missing or unclear
 
-**Feature completion definition:**
-This task passing means:
-1. All user requirements implemented
-2. All acceptance criteria met
-3. All tests passed
-4. Code is clean and maintainable
-5. Feature is ready for production use
-
-The feature is NOT complete until TASKΩ passes all verification steps.
+This validation task ensures none of these failure modes occurred.

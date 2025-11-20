@@ -1,98 +1,192 @@
 ## PROMPT
-Remove or deprecate the now-unused `isRoadPathBlocked()` function in GameScene.swift, verify that `findFlyingPath()` remains unused, and clean up any misleading comments about A* fallback behavior. This removes dead code after TASK1 and TASK2 eliminated all callers of road-blocking detection.
+Perform manual visual testing of bug movement across multiple maps to verify that bugs stay on the brown dirt road tiles without drift. This is the ultimate validation that the fix achieves the user's visual requirement.
+
+**Your objective:** Build and run the game, observe bug movement on representative maps with different bug types, and confirm visually that bugs follow the path precisely like "a train on tracks."
 
 ## COMPLEXITY
 Low
 
 ## CONTEXT REFERENCE
 **For complete environment context, read:**
-- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Contains full tech stack (Swift 5.x, SpriteKit), architecture, coding conventions, and related code patterns
+- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Contains full tech stack (Swift/SpriteKit macOS/iOS game), map system (20 maps), grid system (20x15 tiles, brown dirt roads), bug types (ant, beetle, spider, mosquito, wasp), and wave mechanics
 
 **You MUST read AI_PROMPT.md before executing this task to understand the environment.**
 
 ## TASK-SPECIFIC CONTEXT
 
-### Files This Task Will Touch
-- `Sources/BugDefense/GameScene.swift` lines ~1049-1060 - The `isRoadPathBlocked()` function (remove/deprecate)
-- `Sources/BugDefense/GameScene.swift` - Any comments referencing A* fallback behavior (update/remove)
-- `Sources/BugDefense/PathfindingGrid.swift` lines 85-122 - The `findFlyingPath()` function (verify still unused, no changes)
+### What TASK1 Implemented
+TASK1 rewrote the movement calculation to use vector normalization. Your job is to verify this works visually in the actual game.
 
-### Patterns to Follow
-**Removal pattern (preferred):**
-```swift
-// Simply delete the entire isRoadPathBlocked() function
-// Version control preserves history if needed
-```
+### Testing Scope
+From AI_PROMPT.md Section 5.1 (Testing Guidance):
+> Manual Testing: Visual verification is critical for this fix
+> - Run the game and observe bugs on different maps
+> - Use Map 1 (Winding Road), Map 8 (U-Turns), Map 15 (Diagonal)
+> - Verify bugs stay on brown road tiles throughout journey
+> - Test with slow bugs (beetles) and fast bugs (spiders, wasps)
 
-**Deprecation pattern (alternative if retention desired):**
-```swift
-@available(*, deprecated, message: "Roads cannot be blocked - function no longer needed after TASK0")
-private func isRoadPathBlocked(_ roadPath: [GridPosition]) -> Bool {
-    // Function body...
-}
-```
+### Maps to Test (Priority Order)
+1. **Map 1 (Winding Road)** - Complex curves and turns
+2. **Map 8 (U-Turns)** - Sharp 180-degree direction changes
+3. **Map 9 (Straight Shot)** - Simple baseline (optional but recommended)
+4. **Map 15 (Diagonal)** - Diagonal path segments
 
-**Comment cleanup examples:**
-```swift
-// BEFORE (misleading):
-// If road is blocked, bugs use A* pathfinding
+These 4 maps cover the main path geometries and should be sufficient to validate the fix.
 
-// AFTER (accurate):
-// Bugs always follow predefined road paths
+### Bug Types to Test
+- **Normal speed:** Ants (wave 1-5)
+- **Slow speed:** Beetles OR use slow traps
+- **Fast speed:** Spiders or advance to wave 10+ for speed scaling
 
-// OR simply remove if comment is now redundant
-```
+### What to Look For
+From AI_PROMPT.md Section 4 (Acceptance Criteria):
+✅ **Good - Fix is working:**
+- Bugs remain visually on brown dirt road tiles at all times
+- Movement is smooth and continuous (not jerky)
+- Bugs don't cut corners or take shortcuts
+- Bug sprite center aligns with road tile centers
+- Bugs complete the path and reach the house
 
-### Integration Points
-- After TASK1 removes `isRoadPathBlocked()` call in `spawnBug()`
-- After TASK2 removes `isRoadPathBlocked()` call in `recalculateBugPaths()`
-- Function should have zero callers (verify with search)
+❌ **Bad - Fix is not working:**
+- Bug sprite appears off the brown road (on grass, sand, etc.)
+- Bugs cut diagonally across corners instead of following tiles
+- Jerky or teleporting movement
+- Bugs skip waypoints or get stuck
 
-### Verification Strategy
-1. Search entire codebase for `isRoadPathBlocked` - should find only definition
-2. Search for comments containing "A*", "blocked", "fallback" - update or remove misleading ones
-3. Verify `findFlyingPath` still unused (already confirmed unused in AI_PROMPT.md)
+### Success Definition
+From AI_PROMPT.md Section 9:
+> "A player watching bugs move along the winding road paths should see them follow the brown dirt road tiles precisely, like a train on tracks, with smooth continuous movement but no deviation from the path."
 
 ## EXTRA DOCUMENTATION
 
-### Why This Function Is Now Dead Code
-**Before TASK0:** Roads could be blocked by towers → function checked if structures blocked road tiles → bugs used A* fallback
+### How to Build and Run
+```bash
+# Build the game
+cd /Users/jrc/Code/bug-defense/bug-defense-main
+swift build
 
-**After TASK0:** Roads cannot be blocked → function always returns false (or never called) → pure dead code
+# Run the game (exact command may vary)
+swift run
+# OR if using Xcode:
+open BugDefense.xcodeproj
+# Then click Run (Cmd+R)
+```
 
-### findFlyingPath() Status
-According to AI_PROMPT.md:
-- "PathfindingGrid has unused findFlyingPath() function (PathfindingGrid.swift:85-122)"
-- User wants flying bugs to follow roads (not use special paths)
-- This function ALREADY unused and should REMAIN unused
-- No changes needed to PathfindingGrid.swift - just verify no new calls introduced
+### Game Controls (Typical Tower Defense)
+- Click on maps to select them
+- Start wave button to spawn bugs
+- Place towers (if needed for slow traps)
+- Observe bug movement as they traverse the path
 
-### Removal Safety
-Safe to remove `isRoadPathBlocked()` because:
-1. TASK1 and TASK2 eliminated all callers
-2. Function purpose (detect road blocking) is obsolete after TASK0
-3. Version control preserves history for reference
-4. Dead code creates confusion and maintenance burden
+### Regression Testing
+From AI_PROMPT.md Section 4:
+> "No Regression: Flying bugs (mosquito, wasp) are unaffected. Burrowing bugs maintain their special mechanics."
 
-### Expected Outcome
-After this task:
-- Codebase has no road-blocking detection logic
-- Comments accurately reflect road-only bug behavior
-- No unused functions generating compiler warnings
-- Code is cleaner and easier to understand
+**Verify:**
+- Flying bugs (mosquito, wasp) still fly correctly - they use different pathfinding
+- Burrowing bugs still burrow correctly - they have special underground/surface logic
+- No changes to these special bug types
+
+### Grid and Coordinate Context
+From AI_PROMPT.md Section 2:
+- Grid: 20x15 tiles (width x height)
+- Tile size: 40 points
+- Grid (0,0) = bottom-left, (19,14) = top-right
+- World position = grid position * 40 + 20 (centered on tile)
+
+Brown dirt road tiles are the visible path on the map background.
+
+### Test Report Template
+Create a summary of your findings:
+
+```markdown
+# Manual Visual Testing Report
+
+## Test Environment
+- Build: Success / Failure
+- Platform: macOS / iOS
+- Date: YYYY-MM-DD
+
+## Maps Tested
+- [ ] Map 1 (Winding Road): PASS / FAIL - [notes]
+- [ ] Map 8 (U-Turns): PASS / FAIL - [notes]
+- [ ] Map 9 (Straight Shot): PASS / FAIL - [notes]
+- [ ] Map 15 (Diagonal): PASS / FAIL - [notes]
+
+## Bug Speed Testing
+- [ ] Normal bugs (ants): PASS / FAIL - [notes]
+- [ ] Slow bugs (beetles/trapped): PASS / FAIL - [notes]
+- [ ] Fast bugs (spiders/high wave): PASS / FAIL - [notes]
+
+## Regression Testing
+- [ ] Flying bugs (mosquito/wasp): PASS / FAIL - [notes]
+- [ ] Burrowing bugs: PASS / FAIL / N/A - [notes]
+
+## Visual Quality Observations
+- Smoothness: [smooth / jerky / teleporting]
+- Path adherence: [perfect / minor drift / major drift]
+- Corner handling: [precise / cuts corners / overshoots]
+
+## Overall Assessment
+PASS / FAIL
+
+## Issues Found (if any)
+[Describe any visual anomalies with specific details: which map, which bug type, where on the path]
+
+## Screenshots/Evidence
+[Optional: note if screenshots were taken]
+```
+
+### Specific Scenarios to Watch
+
+**Scenario 1: Curve on Map 1**
+- Watch bugs navigate the winding curves
+- Bug should move tile-by-tile, not cut across diagonally
+- Sprite should remain centered on brown road tiles
+
+**Scenario 2: U-Turn on Map 8**
+- Watch bugs make 180-degree turn
+- Bug should reach the corner tile exactly before turning
+- No overshoot or drift past the turn point
+
+**Scenario 3: Diagonal on Map 15**
+- Watch bugs move diagonally
+- Bug should move through each diagonal tile sequentially
+- No drift toward horizontal or vertical axes
+
+**Scenario 4: Fast Bug Stress Test**
+- Advance to wave 15+ or use fast bug types
+- Bug should NOT skip tiles even at high speed
+- Should still snap to each waypoint before advancing
 
 ## LAYER
-2
+2 (Validation - can run in parallel with TASK2)
 
 ## PARALLELIZATION
-Parallel with: []
+Parallel with: [TASK2]
+Both TASK2 (unit tests) and TASK3 (manual testing) validate the TASK1 implementation and can run simultaneously.
 
 ## CONSTRAINTS
-- IMPORTANT: Do not perform any git commit or git push.
-- Prefer complete removal over deprecation (unless project policy requires deprecation first)
-- Do NOT modify PathfindingGrid.swift (findFlyingPath stays unused but intact)
-- Do NOT remove A* pathfinding infrastructure (might be used elsewhere or future)
-- Do NOT modify Bug.swift or movement logic
-- Only remove code confirmed unused by TASK1 and TASK2 completion
-- Build must succeed after changes: `swift build`
-- Use grep/search to verify zero references before removal
+- IMPORTANT: Do not perform any git commit or git push
+- **No code changes** - this is observation only
+- Build and run the actual game
+- Test at least 3-4 maps (Map 1, 8, 15 minimum)
+- Test with different bug speeds (slow, normal, fast)
+- Verify regression testing (flying bugs, burrowing bugs)
+- Document findings in a test report
+- If visual drift is observed, document details but don't attempt to fix
+
+## DELIVERABLES
+1. **Test Report** documenting:
+   - Which maps were tested (minimum 3)
+   - Which bug types/speeds were tested
+   - Visual quality observations
+   - Overall PASS/FAIL assessment
+   - Any issues found with specific details
+
+2. **Regression Confirmation**:
+   - Flying bugs still work correctly
+   - Burrowing bugs still work correctly (if applicable)
+
+3. **Overall Validation**:
+   - Clear statement: "Bugs stay on path at all times" ✅ or ❌

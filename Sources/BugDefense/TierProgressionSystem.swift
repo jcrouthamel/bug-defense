@@ -19,55 +19,87 @@ struct Tier {
 class TierProgressionManager {
     static let shared = TierProgressionManager()
 
-    // Define all tiers - 100 waves per tier
-    let tiers: [Tier] = [
-        Tier(number: 1, name: "Village", waveRange: 1...100, mapType: .map1, icon: "🏘️"),
-        Tier(number: 2, name: "Town", waveRange: 101...200, mapType: .map1, icon: "🏙️"),
-        Tier(number: 3, name: "City", waveRange: 201...300, mapType: .map1, icon: "🌆"),
-        Tier(number: 4, name: "Metropolis", waveRange: 301...400, mapType: .map1, icon: "🏢")
-    ]
+    // Track which cycle we're on (each cycle is 100 waves)
+    private(set) var currentCycle: Int = 0
+
+    // Generate tier based on current cycle
+    private func getTierForCycle(_ cycle: Int) -> Tier {
+        let icons = ["🏘️", "🏙️", "🌆", "🏢", "🌃", "🏰", "🗼", "🌉"]
+        let names = ["Village", "Town", "City", "Metropolis", "Capital", "Kingdom", "Empire", "Realm"]
+
+        let iconIndex = cycle % icons.count
+        let nameIndex = cycle % names.count
+
+        let waveStart = cycle * 100 + 1
+        let waveEnd = (cycle + 1) * 100
+
+        return Tier(
+            number: cycle + 1,
+            name: names[nameIndex],
+            waveRange: waveStart...waveEnd,
+            mapType: .map1,
+            icon: icons[iconIndex]
+        )
+    }
+
+    var tiers: [Tier] {
+        // Generate up to 4 tiers for display purposes
+        return (0..<4).map { getTierForCycle(currentCycle + $0) }
+    }
 
     private init() {}
 
     /// Get the current tier based on wave number
     func getCurrentTier(for wave: Int) -> Tier {
-        return tiers.first { $0.waveRange.contains(wave) } ?? tiers[0]
+        let cycle = max(0, (wave - 1) / 100)
+        return getTierForCycle(cycle)
     }
 
     /// Get tier by number
     func getTier(_ number: Int) -> Tier? {
-        return tiers.first { $0.number == number }
+        return getTierForCycle(number - 1)
     }
 
     /// Check if a tier is completed
     func isTierCompleted(_ tierNumber: Int, currentWave: Int) -> Bool {
-        guard let tier = getTier(tierNumber) else { return false }
-        return currentWave > tier.waveRange.upperBound
+        let cycle = max(0, (currentWave - 1) / 100)
+        return tierNumber <= cycle
     }
 
-    /// Check if just completed a tier (reached boss wave)
+    /// Check if just completed a tier (every 100 waves)
     func justCompletedTier(wave: Int) -> Bool {
-        // Tier completion happens at waves 100, 200, 300, 400
-        return wave == 100 || wave == 200 || wave == 300 || wave == 400
+        return wave % 100 == 0
     }
 
     /// Get the next tier after completion
     func getNextTier(after wave: Int) -> Tier? {
-        let currentTier = getCurrentTier(for: wave)
-        return tiers.first { $0.number == currentTier.number + 1 }
+        let cycle = max(0, (wave - 1) / 100)
+        return getTierForCycle(cycle + 1)
     }
 
-    /// Automatically change map based on current wave - selects random map every 10 waves
+    /// Update cycle counter when advancing to next 100-wave cycle
+    func advanceCycle() {
+        currentCycle += 1
+        print("🏆 Advanced to cycle \(currentCycle + 1)")
+    }
+
+    /// Reset cycle counter (for new game)
+    func resetCycle() {
+        currentCycle = 0
+        print("🔄 Reset to cycle 1")
+    }
+
+    /// Automatically change map based on current wave - stays on same map for 100 waves
     func updateMapForWave(_ wave: Int) {
         let tier = getCurrentTier(for: wave)
 
-        // Select a new random map every 10 waves or at the start
-        if wave == 1 || wave % 10 == 1 {
+        // Only change map at wave 1 or after completing a full 100-wave cycle
+        if wave == 1 {
             MapManager.shared.selectRandomMap()
             print("🎲 New random map selected for wave \(wave)")
         }
 
-        print("🏆 Now in Tier \(tier.number): \(tier.name) (Waves \(tier.waveRange.lowerBound)-\(tier.waveRange.upperBound))")
+        print("🏆 Cycle \(currentCycle + 1): \(tier.name) - Wave \(wave) of \(tier.waveRange)")
     }
 }
 

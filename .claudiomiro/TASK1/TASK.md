@@ -1,99 +1,166 @@
 @dependencies [TASK0]
-# Task: Remove A* Pathfinding Fallback from Bug Spawning
+# Task: Implement Vector-Based Movement Fix in Bug.swift
 
 ## Summary
-Simplify the `spawnBug()` function to always assign the predefined road path to bugs, removing the A* pathfinding fallback logic. Since TASK0 prevents towers from being placed on roads, bugs are guaranteed to have clear paths and no longer need dynamic pathfinding.
+Rewrite the bug movement calculation in `Bug.swift:276-315` to use proper vector-based movement that keeps bugs strictly on the path. Replace the current axis-locking heuristics with normalized direction vectors that ensure bugs move directly toward each waypoint without drift.
+
+**Why this matters:** This is the core fix that addresses the root cause identified in TASK0. Proper vector math ensures bugs follow the straight line from their current position to the target waypoint, which keeps them on the path tiles at all times.
 
 ## Context Reference
 **For complete environment context, see:**
-- `../AI_PROMPT.md` - Contains full tech stack (Swift 5.x, SpriteKit), architecture (bug spawning system, pathfinding grid), coding conventions, and related code patterns
+- `../AI_PROMPT.md` - Contains full tech stack (Swift/SpriteKit), architecture patterns, grid system (20x15 tiles, 40pt size), coordinate conversion, performance requirements, and coding conventions (emoji prefixes, camelCase, etc.)
 
 **Task-Specific Context:**
-This task simplifies bug path assignment during spawning by removing conditional logic that checks for road blocking.
+This task modifies the movement calculation logic in one method only.
 
-**Files This Task Will Touch:**
-- `Sources/BugDefense/GameScene.swift:510-544` - The `spawnBug(_ bug: Bug)` function
-- Specifically lines 522-528 that contain the A* fallback code block
+### Files This Task Will Modify
+- `Sources/BugDefense/Bug.swift` (lines 276-315) - Replace the movement calculation section
+  - **Keep unchanged:** Lines 254-275 (burrowing behavior, path setup, distance calculation)
+  - **Modify:** Lines 276-315 (movement calculation and waypoint advancement)
+  - **Keep unchanged:** Lines 316+ (rest of the update method)
 
-**Specific Patterns to Follow:**
-Current implementation (GameScene.swift:510-544):
-```swift
-private func spawnBug(_ bug: Bug) {
-    let roadPath = MapManager.shared.getCurrentRoadPath()
-    if isRoadPathBlocked(roadPath) {
-        // A* fallback - REMOVE THIS ENTIRE BLOCK
-    } else {
-        // Use predefined path - KEEP THIS as only behavior
-    }
-    bug.setPath(path)
-}
-```
+### Pattern to Follow
+From AI_PROMPT.md Section 5 (Implementation Guidance):
+**Recommended Approach:**
+1. Move directly toward the target waypoint's exact world position
+2. Use proper vector normalization to maintain speed while moving toward target
+3. Lock position exactly to the waypoint's world position when close enough
+4. Only then advance to the next waypoint
 
-Simplified pattern:
-```swift
-private func spawnBug(_ bug: Bug) {
-    let roadPath = MapManager.shared.getCurrentRoadPath()
-    // Always use predefined road path (no A* fallback needed)
-    bug.setPath(roadPath)
-    // Rest of spawning logic...
-}
-```
+### Integration Points
+- Called from: `GameScene.update(_:)` every frame for each bug
+- Affects: `Bug.position` (SpriteKit world coords) and `Bug.gridPosition` (grid coords)
+- Must preserve: `moveSpeed`, `slowFactor`, wave scaling, burrowing behavior
 
-**Integration Points:**
-- Works with MapManager.shared to get current map's road path
-- Calls bug.setPath() to assign path (existing method, no changes)
-- Affects all bug types: ground bugs (ant, beetle) and flying bugs (mosquito, wasp)
-- No longer depends on `isRoadPathBlocked()` function
+### Key Constraints
+- **Performance critical:** This runs every frame for every active bug
+- **Use basic vector math only:** No complex algorithms or allocations
+- **Preserve existing behavior:** Flying bugs, burrowing bugs, slow factors must work unchanged
+- **No API changes:** Keep the same method signature and parameters
 
 ## Complexity
-Low
+Medium
 
 ## Dependencies
 Depends on: [TASK0]
-Blocks: [TASK3, TASK4, TASKΩ]
-Parallel with: [TASK2]
+Blocks: [TASK2, TASK3, TASKΩ]
+Parallel with: []
 
 ## Detailed Steps
-1. Locate `spawnBug(_ bug: Bug)` function in GameScene.swift (lines 510-544)
-2. Find the conditional block that checks `isRoadPathBlocked(roadPath)` (around lines 522-528)
-3. Remove the entire `if isRoadPathBlocked(roadPath) { ... } else { ... }` structure
-4. Replace with direct path assignment: `bug.setPath(roadPath)`
-5. Ensure all bug types (ground and flying) follow this same logic
-6. Build the project to verify no compilation errors: `swift build`
+
+1. **Review TASK0 analysis findings**
+   - Read the root cause analysis from TASK0
+   - Understand the geometric flaw in the current approach
+   - Confirm the recommended vector-based solution
+
+2. **Locate the movement calculation section**
+   - Open `Sources/BugDefense/Bug.swift`
+   - Identify lines 276-315 (the section to replace)
+   - Understand what needs to be preserved vs. replaced
+
+3. **Implement the new movement algorithm**
+   Replace lines 276-315 with vector-based movement:
+
+   ```swift
+   // Calculate direction vector from current position to target waypoint
+   let direction = CGPoint(
+       x: targetWorldPos.x - position.x,
+       y: targetWorldPos.y - position.y
+   )
+
+   // Calculate distance to target
+   let distance = sqrt(direction.x * direction.x + direction.y * direction.y)
+
+   // If very close to waypoint, snap to exact position
+   if distance < 2.0 {
+       position = targetWorldPos
+       gridPosition = movementPath[pathIndex]
+       pathIndex += 1
+   } else {
+       // Normalize direction and apply speed
+       let normalizedDirection = CGPoint(
+           x: direction.x / distance,
+           y: direction.y / distance
+       )
+
+       let moveDistance = moveSpeed * slowFactor * CGFloat(deltaTime)
+
+       // Move along the normalized direction
+       position.x += normalizedDirection.x * moveDistance
+       position.y += normalizedDirection.y * moveDistance
+   }
+   ```
+
+4. **Preserve critical existing logic**
+   - Keep the burrowing behavior section (lines 258-270) exactly as-is
+   - Keep the path completion check (when pathIndex reaches end)
+   - Keep the health bar update and other properties
+
+5. **Update gridPosition correctly**
+   - Ensure `gridPosition` updates when waypoint is reached
+   - Verify it reflects the current path position
+
+6. **Add clarifying comments**
+   - Use emoji prefix (🐛) consistent with codebase conventions
+   - Explain why vector normalization prevents drift
+   - Document the snap threshold (2.0 points)
+
+7. **Test the changes build**
+   - Run `swift build` to ensure no syntax errors
+   - Fix any compilation issues
 
 ## Acceptance Criteria
-- [ ] `spawnBug()` no longer calls `isRoadPathBlocked()`
-- [ ] All bugs receive `roadPath` directly without conditional logic
-- [ ] A* path assignment code block (lines 522-528 approximately) is removed or commented out
-- [ ] Ground bugs (ant, beetle) spawn with road path
-- [ ] Flying bugs (mosquito, wasp) spawn with road path (same as ground)
-- [ ] Project builds successfully with no compilation errors
-- [ ] No changes to bug.setPath() call or bug spawning orchestration
+- [ ] **Code compiles successfully**: No build errors after changes
+- [ ] **Movement uses vector normalization**: Direction is normalized before applying speed
+- [ ] **Position snaps exactly at waypoints**: When distance < 2.0, position = targetWorldPos exactly
+- [ ] **Speed calculation preserved**: Uses `moveSpeed * slowFactor * CGFloat(deltaTime)`
+- [ ] **GridPosition updates correctly**: Set to current waypoint when waypoint reached
+- [ ] **PathIndex increments properly**: Only increments after position snap, not before
+- [ ] **Burrowing behavior unchanged**: Lines 258-270 remain exactly as they were
+- [ ] **No segment-type heuristics**: Removed the `deltaX > deltaY` logic completely
+- [ ] **Simple and efficient**: No complex calculations, no allocations in hot path
+- [ ] **Comments added**: Clarifying comments explain the vector-based approach
+- [ ] **Follows Swift conventions**: camelCase naming, proper spacing, emoji prefixes
 
 ## Code Review Checklist
-- [ ] Removed conditional A* logic entirely (no orphaned if/else blocks)
-- [ ] All bug types use same path assignment (no special flying bug logic)
-- [ ] No calls to isRoadPathBlocked() remain in this function
-- [ ] Clean code with no commented-out blocks (or clearly marked if temporarily retained)
-- [ ] Bug spawning flow otherwise unchanged (position, animations, etc.)
-- [ ] Follows existing code style and patterns in GameScene.swift
+- [ ] **No dead code**: Removed old axis-locking logic completely, no commented-out code
+- [ ] **Clear variable names**: `direction`, `distance`, `normalizedDirection`, `moveDistance` are descriptive
+- [ ] **Geometric correctness**: Vector normalization math is correct (divide by magnitude)
+- [ ] **Edge case handling**: Distance check prevents division by zero when very close to waypoint
+- [ ] **Consistent with codebase**: Follows existing patterns in Bug.swift (property updates, coordinate handling)
+- [ ] **No performance regressions**: Only basic math operations (sqrt, division, multiplication)
+- [ ] **Preserve existing contracts**: Method signature unchanged, all properties still updated correctly
+- [ ] **Error handling**: Distance check ensures we never normalize a zero-length vector
 
 ## Reasoning Trace
-**Why this depends on TASK0:**
-Cannot safely remove A* fallback until towers cannot be placed on roads. If we removed this first, bugs could fail to reach the house when roads are blocked by existing towers.
 
-**Why this is parallel with TASK2:**
-Both tasks remove road-blocking-related logic but in different functions. They don't depend on each other's completion - only on TASK0's completion.
+**Why vector normalization?**
+- A normalized direction vector has length 1.0
+- Multiplying by speed gives exact control over distance traveled
+- This ensures bugs move AT the target, not past it or falling short
+- Moving along the straight line to the target keeps the bug on the path tiles
 
-**Design Decision - Complete Removal vs. Commenting:**
-Prefer complete removal of A* fallback code over commenting because:
-1. User explicitly requested road-only movement (no fallback)
-2. Dead code clutters codebase and creates confusion
-3. Version control preserves history if needed
-4. If temporary retention is needed for safety, use clear comment: `// REMOVED: A* fallback - roads cannot be blocked after TASK0`
+**Why snap at distance < 2.0?**
+- Prevents oscillation around the waypoint
+- 2.0 points is small enough to be visually unnoticeable (tile size is 40 points)
+- Ensures exact arrival at waypoint center before advancing to next
 
-**Flying Bug Behavior:**
-User clarified flying bugs should follow roads (not take shortcuts). Current implementation already has this behavior - `canFly` property exists but is unused. This task confirms and preserves that behavior by treating all bugs identically.
+**Why remove axis-locking?**
+- The current heuristic (`deltaX > deltaY`) is arbitrary and doesn't reflect the actual path geometry
+- Since paths are already expanded to every tile, we don't need to infer segment direction
+- Direct vector movement is simpler, more correct, and easier to understand
 
-**Alternative considered and rejected:**
-Keeping A* as a fallback "just in case" would violate user's explicit requirement and maintain dead code that can never execute (since TASK0 prevents road blocking).
+**Performance considerations:**
+- One sqrt() call per bug per frame is acceptable (standard game math)
+- No allocations (reusing existing CGPoint properties)
+- No loops or complex algorithms
+- This is standard vector math used in all game engines
+
+**Alternative approaches considered:**
+- Tile-by-tile snapping: Would work but creates jerky movement
+- Bezier curves: Overkill for straight tile-to-tile movement
+- State machine for segment types: More complex than needed, prone to same heuristic errors
+
+**Trade-offs:**
+- **Chosen:** Vector normalization - Simple, geometrically correct, smooth movement
+- **Not chosen:** Axis-locking heuristics - Simpler code but fundamentally flawed for curved paths

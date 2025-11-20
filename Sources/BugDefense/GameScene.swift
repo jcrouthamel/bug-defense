@@ -445,32 +445,10 @@ public class GameScene: SKScene {
 
         print("🌊 Starting wave \(gameState.currentWave + 1)")
 
-        // Check if we're entering a new tier
-        let previousTier = TierProgressionManager.shared.getCurrentTier(for: gameState.currentWave)
-
         gameState.startNextWave()
 
-        // Store old map before updating
-        let previousMap = MapManager.shared.currentMap
-
-        // Update map for current tier (may select new random map every 10 waves)
+        // Update map info for current wave (doesn't change map, just logs info)
         TierProgressionManager.shared.updateMapForWave(gameState.currentWave)
-
-        let newTier = TierProgressionManager.shared.getCurrentTier(for: gameState.currentWave)
-        let newMap = MapManager.shared.currentMap
-
-        // If tier changed, redraw grid and reset towers
-        if previousTier.number != newTier.number {
-            print("🏆 Tier transition: \(previousTier.name) → \(newTier.name)")
-            resetAllTowers()
-            redrawGrid()
-        }
-        // If map changed (happens every 10 waves), redraw grid and recalculate paths
-        else if previousMap != newMap {
-            print("🗺️ Map changed! Redrawing grid and recalculating bug paths")
-            redrawGrid()
-            recalculateBugPaths()
-        }
 
         waveManager.startWave()
         buildPhaseTimer = 0
@@ -493,15 +471,15 @@ public class GameScene: SKScene {
             hud.refreshPowerUpButton()
         }
 
-        // Show tier progression UI when tier is completed
-        if TierProgressionManager.shared.justCompletedTier(wave: gameState.currentWave) {
-            // Small delay to show after card popup (if any)
+        // Check if we completed a 100-wave cycle (wave 100, 200, 300, etc.)
+        if gameState.shouldResetForNewCycle() {
+            // Small delay to show popup after card popup (if any)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.showTierCompletionPopup()
+                self?.showCycleCompletionAndReset()
             }
         }
 
-        gameState.checkVictory()
+        gameState.checkVictory() // Now a no-op, but kept for compatibility
 
         // Auto-save progress after completing a wave
         saveGame()
@@ -1333,6 +1311,49 @@ public class GameScene: SKScene {
         // Game remains paused - player can place towers and manually start next wave
     }
 
+    private func showCycleCompletionAndReset() {
+        let currentTier = TierProgressionManager.shared.getCurrentTier(for: gameState.currentWave)
+        let nextTier = TierProgressionManager.shared.getNextTier(after: gameState.currentWave)
+
+        // Pause the game
+        hud.isPaused = true
+
+        // Reset all towers for new map
+        resetAllTowers()
+
+        // Select new random map for next cycle
+        MapManager.shared.selectRandomMap()
+        redrawGrid()
+
+        // Advance to next cycle
+        TierProgressionManager.shared.advanceCycle()
+
+        // Reset game state for new cycle (keeps currency, coins, gems, cards)
+        gameState.resetForNewCycle()
+
+        // Update HUD
+        hud.updateWave(gameState.currentWave)
+        hud.updateHealth(gameState.houseHealth)
+
+        // Reset house health
+        house.heal(GameConfiguration.houseMaxHealth)
+
+        // Create and show the cycle completion popup
+        tierCompletionPopup?.removeFromParent()
+        tierCompletionPopup = TierCompletionPopup(
+            size: size,
+            completedTier: currentTier,
+            nextTier: nextTier,
+            onContinue: { [weak self] in
+                self?.closeTierCompletionPopup()
+            }
+        )
+        tierCompletionPopup!.zPosition = 1000
+        gameCamera.addChild(tierCompletionPopup!)
+
+        print("🎉 Completed 100 waves! Starting new cycle with fresh map")
+    }
+
     // MARK: - Module Drops
 
     private func showModuleDropNotification(_ module: Module, at position: CGPoint) {
@@ -1546,6 +1567,9 @@ public class GameScene: SKScene {
         // Reset game state
         gameState.reset()
         print("🔄 Game state reset to: \(gameState.currentState)")
+
+        // Reset cycle counter
+        TierProgressionManager.shared.resetCycle()
 
         // Reset house health
         house.heal(GameConfiguration.houseMaxHealth)
