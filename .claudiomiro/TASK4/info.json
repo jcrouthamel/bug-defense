@@ -1,0 +1,44 @@
+{
+  "firstRun": "2025-11-20T16:50:51.297Z",
+  "lastRun": "2025-11-20T17:11:32.618Z",
+  "attempts": 7,
+  "lastError": null,
+  "reResearched": false,
+  "history": [
+    {
+      "timestamp": "2025-11-20T16:50:51.297Z",
+      "attempt": 1,
+      "reResearched": false
+    },
+    {
+      "timestamp": "2025-11-20T16:54:48.524Z",
+      "attempt": 2,
+      "reResearched": false
+    },
+    {
+      "timestamp": "2025-11-20T16:56:56.474Z",
+      "attempt": 3,
+      "reResearched": false
+    },
+    {
+      "timestamp": "2025-11-20T16:59:48.068Z",
+      "attempt": 4,
+      "reResearched": false
+    },
+    {
+      "timestamp": "2025-11-20T17:03:28.297Z",
+      "attempt": 5,
+      "reResearched": false
+    },
+    {
+      "timestamp": "2025-11-20T17:05:40.707Z",
+      "attempt": 6,
+      "reResearched": false
+    },
+    {
+      "timestamp": "2025-11-20T17:11:32.618Z",
+      "attempt": 7,
+      "reResearched": false
+    }
+  ]
+}
