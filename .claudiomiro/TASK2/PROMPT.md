@@ -1,213 +1,130 @@
 ## PROMPT
-Create comprehensive unit tests for the bug movement logic to verify that the vector-based movement fix keeps bugs on the path across various scenarios and edge cases.
+Design and implement Map 22 with a cloverleaf/four-petal looping pattern for the Bug Defense game.
 
-**Your objective:** Write focused, fast, repeatable tests that verify bugs reach waypoints exactly, maintain proper speed, and handle edge cases without requiring manual gameplay testing.
+**Your mission:** Create a visually striking map where the path loops around the house in four distinct arcs, providing moderate-high difficulty with strategic tower placement opportunities.
 
 ## COMPLEXITY
 Medium
 
 ## CONTEXT REFERENCE
 **For complete environment context, read:**
-- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Contains full tech stack (Swift 5.x/SpriteKit), grid system (20x15 tiles, 40pt tile size), testing philosophy (minimal & relevant), and coding conventions
+- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Contains full tech stack, architecture, project structure, coding conventions, and related code patterns
 
 **You MUST read AI_PROMPT.md before executing this task to understand the environment.**
 
 ## TASK-SPECIFIC CONTEXT
 
-### What TASK1 Implemented
-TASK1 rewrote the movement calculation in `Bug.update()` to use vector normalization. Your tests verify this implementation works correctly.
+### Files This Task Will Touch
+**Will modify:**
+- `Sources/BugDefense/MapConfiguration.swift`
+  - Add `.map22` case to MapType enum (around line 5)
+  - Implement `map22Path` method (after existing maps)
+  - Add case to `roadPath` switch statement (around line 43)
 
-### File to Create
-**`Tests/BugDefenseTests/BugMovementTests.swift`** (NEW)
-- Contains unit tests for Bug movement logic
-- Tests the modified `update(deltaTime:pathfindingGrid:)` method
-- Focuses on changed code, not entire Bug class
+### Patterns to Follow
+**Reference Map 11 (Box Spiral) for complex looping patterns:**
+- See MapConfiguration.swift:350-412 for inspiration on creating multi-segment loops
 
-### Testing Philosophy
-From AI_PROMPT.md Section 5.1:
-> Test changed code with minimum sufficient evidence. Focus on movement correctness.
-
-**This means:**
-- Test the movement calculation, not the entire game system
-- Create isolated tests with controlled inputs
-- Verify specific behaviors (waypoint arrival, no drift, correct speed)
-- Don't test unchanged functionality (flying bugs, burrowing, health)
-
-### Required Test Cases
-From AI_PROMPT.md Section 5.1, implement these 7 test cases:
-
-1. **Straight Horizontal Path**
-   - Path: (1,5) → (5,5)
-   - Verify: position.y remains constant at world Y for y=5
-   - Verify: Bug arrives exactly at each waypoint
-
-2. **Straight Vertical Path**
-   - Path: (5,1) → (5,5)
-   - Verify: position.x remains constant at world X for x=5
-   - Verify: Bug arrives exactly at each waypoint
-
-3. **Diagonal Path**
-   - Path: (2,2) → (3,3) → (4,4) → (5,5)
-   - Verify: Bug moves in straight line through intermediate tiles
-   - Verify: Passes through each waypoint
-
-4. **Complex Curved Path (L-shape)**
-   - Path: Horizontal segment then vertical turn
-   - Verify: Bug completes entire path
-   - Verify: No drift off path during turn
-
-5. **Very Slow Bug**
-   - slowFactor = 0.1
-   - Verify: Still reaches waypoints exactly, just takes longer iterations
-
-6. **Very Fast Bug**
-   - High moveSpeed (wasp-like)
-   - Verify: Doesn't skip waypoints
-   - Verify: pathIndex increments correctly
-
-7. **Bug Starting Exactly at Waypoint**
-   - Initial position = first waypoint world position
-   - Verify: Doesn't get stuck, advances properly
-
-### Test Structure Pattern
+**Enum and method pattern:**
 ```swift
-import XCTest
-@testable import BugDefense
+case map22 = "Cloverleaf Loop"
 
-final class BugMovementTests: XCTestCase {
-    func testBugMovesAlongStraightHorizontalPathWithoutDrift() {
-        // Arrange
-        let path = [GridPosition(x: 1, y: 5), GridPosition(x: 2, y: 5), ...]
-        let bug = createTestBug(path: path)
-        let expectedY = GridPosition(x: 1, y: 5).toWorldPosition().y
-
-        // Act
-        runUpdatesUntilCompletion(bug: bug)
-
-        // Assert
-        // Check that bug stayed on the horizontal line
-        // Check that bug reached final waypoint
-    }
+private var map22Path: [GridPosition] {
+    return [
+        GridPosition(x: start_x, y: start_y),  // Spawn at edge
+        // Arc 1: top-left petal
+        // Arc 2: top-right petal
+        // Arc 3: bottom-right petal
+        // Arc 4: bottom-left petal
+        // Spiral in to center
+        GridPosition(x: 10, y: 7)              // House
+    ]
 }
 ```
 
-### Helper Functions to Create
-1. **`createTestBug(path: [GridPosition]) -> Bug`**
-   - Creates a Bug instance with the given path
-   - Sets reasonable defaults (normal speed, no slow factor)
-   - Positions bug at first waypoint
-
-2. **`runUpdatesUntilCompletion(bug: Bug, maxIterations: Int = 1000)`**
-   - Calls `bug.update(deltaTime: 0.016, pathfindingGrid: nil)` repeatedly
-   - Stops when bug reaches end of path or maxIterations reached
-   - Uses realistic deltaTime (0.016 ≈ 60 FPS)
-
-3. **`assertPositionNear(_ actual: CGPoint, _ expected: CGPoint, tolerance: CGFloat)`**
-   - Asserts actual position is within tolerance of expected
-   - Provides clear error message with distance if assertion fails
-
-### Coordinate Conversion Reference
-From AI_PROMPT.md Section 2:
-```swift
-// Grid to world position
-GridPosition(x: 5, y: 3).toWorldPosition()
-// Returns: CGPoint(x: 5 * 40 + 20, y: 3 * 40 + 20)
-//        = CGPoint(x: 220, y: 140)
-```
-
-Tile size = 40 points, center offset = 20 points
-
-### Tolerance Values
-- **Waypoint arrival:** Exact match (0.0 tolerance) - position should snap exactly
-- **Drift detection:** 0.5 points tolerance
-  - Tile size is 40 points
-  - 0.5 points = 1.25% deviation
-  - This catches significant drift while allowing floating-point imprecision
+### Integration Points
+- CaseIterable automatically includes map22 in MapType.allCases
+- Random selection will include this map in pool
+- Path will be assigned to bugs via GameScene.spawnBug()
 
 ## EXTRA DOCUMENTATION
 
-### Example Test Implementation
-```swift
-func testBugMovesAlongStraightHorizontalPathWithoutDrift() {
-    // Arrange
-    let path = [
-        GridPosition(x: 1, y: 5),
-        GridPosition(x: 2, y: 5),
-        GridPosition(x: 3, y: 5),
-        GridPosition(x: 4, y: 5)
-    ]
-    let bug = createTestBug(path: path)
-    let expectedY = path[0].toWorldPosition().y
+### Design Requirements
+**Pattern Type:** Cloverleaf (Four-Petal Loop)
 
-    var positions: [CGPoint] = []
+**Visual Characteristics:**
+- Four arc segments extending from center area
+- Each petal reaches toward a different quadrant
+- Smooth curves (use multiple waypoints per arc)
+- Path circulates around house before final approach
 
-    // Act
-    for _ in 0..<1000 {
-        if bug.pathIndex >= path.count {
-            break
-        }
-        positions.append(bug.position)
-        bug.update(deltaTime: 0.016, pathfindingGrid: nil)
-    }
+**Difficulty Target:** Moderate-High
+- Path length: 50-70 waypoints after expansion
+- Longer path but more complex layout
+- Multiple approach angles challenge tower placement
+- Strategic depth from looping pattern
 
-    // Assert
-    // All positions should have Y coordinate within 0.5 points of expected
-    for position in positions {
-        XCTAssertEqual(position.y, expectedY, accuracy: 0.5,
-                      "Bug drifted off horizontal path at position \(position)")
-    }
-
-    // Bug should have completed the path
-    XCTAssertEqual(bug.pathIndex, path.count,
-                   "Bug did not complete the path")
-
-    // Final position should be exactly at last waypoint
-    let finalExpected = path.last!.toWorldPosition()
-    XCTAssertEqual(bug.position.x, finalExpected.x, accuracy: 0.1)
-    XCTAssertEqual(bug.position.y, finalExpected.y, accuracy: 0.1)
-}
+**Example Cloverleaf Concept:**
+```
+        ┌──┐
+        │  │ top-left petal
+    ┌───┘  └───┐
+    │          │ top-right petal
+left│   HOUSE  │right
+    │          │ bottom-right petal
+    └───┐  ┌───┘
+        │  │ bottom-left petal
+        └──┘
 ```
 
-### Running Tests
-```bash
-# Run all tests
-swift test
+### Suggested Structure
+1. **Start:** Edge position (e.g., bottom-left at x=1, y=1)
+2. **Petal 1:** Arc toward top-left quadrant
+3. **Petal 2:** Arc toward top-right quadrant
+4. **Petal 3:** Arc toward bottom-right quadrant
+5. **Petal 4:** Arc toward bottom-left quadrant
+6. **Spiral in:** Gradual approach to house at center
+7. **End:** GridPosition(x: 10, y: 7)
 
-# Run specific test file
-swift test --filter BugMovementTests
+**Tip:** Use 3-5 waypoints per petal to create smooth arcs rather than angular corners.
 
-# Run specific test case
-swift test --filter testBugMovesAlongStraightHorizontalPathWithoutDrift
-```
+### Validation Checklist
+Before submitting:
+- [ ] All coordinates within safe zone (x:1-18, y:1-13)
+- [ ] First waypoint at grid edge
+- [ ] Last waypoint is GridPosition(x: 10, y: 7)
+- [ ] Four distinct arc segments visible in pattern
+- [ ] Arcs don't overlap with house until final approach
+- [ ] Path forms recognizable cloverleaf shape
 
 ## LAYER
-2 (Validation - can run in parallel with TASK3)
+1 (Parallel map design layer)
 
 ## PARALLELIZATION
-Parallel with: [TASK3]
-Both TASK2 (unit tests) and TASK3 (manual testing) validate the TASK1 implementation and can run simultaneously.
+Parallel with: [TASK1, TASK3, TASK4, TASK5, TASK6, TASK7, TASK8, TASK9, TASK10]
+Blocks: [TASK11, TASKΩ]
 
 ## CONSTRAINTS
-- IMPORTANT: Do not perform any git commit or git push
-- **Create new test file** - don't modify existing tests unless necessary
-- **Test changed code only** - focus on Bug.update() movement logic
-- **Use realistic values** - deltaTime ≈ 0.016 (60 FPS), tile size = 40, actual game speeds
-- **Fast tests** - all tests should complete in < 1 second total
-- **No flakiness** - tests must be deterministic and repeatable
-- **Isolated tests** - each test creates its own bug instance, no shared state
-- Follow Swift testing conventions (XCTest framework)
-- Use descriptive test names that explain what is being tested
-- Include helpful assertion messages for debugging failures
+- **IMPORTANT:** Do not perform any git commit or git push
+- Follow existing MapConfiguration.swift code style
+- Use multiple waypoints for smooth arcs (not jagged corners)
+- Path must be continuous (expandPath handles interpolation)
+- Test compilation after changes
 
-## DELIVERABLES
-1. **`BugMovementTests.swift`** with 7+ test cases
-2. All tests passing (`swift test` shows 0 failures)
-3. Tests verify:
-   - Horizontal path movement (no Y drift)
-   - Vertical path movement (no X drift)
-   - Diagonal path movement
-   - Curved path handling
-   - Slow bug edge case
-   - Fast bug edge case
-   - Starting position edge case
-4. Clear, maintainable test code with helper functions
+## TESTING
+After implementation:
+1. **Compilation test:** `swift build`
+2. **Manual verification:**
+   - Verify path forms cloverleaf visually
+   - Test bug navigation (if possible)
+   - Check road tile rendering
+   - Confirm tower placement works around petals
+
+## SUCCESS CRITERIA
+Task is complete when:
+- ✅ Code compiles without errors
+- ✅ Map 22 appears in MapType enum
+- ✅ Path creates distinctive cloverleaf pattern with 4 petals
+- ✅ All coordinates within safe zone
+- ✅ Path starts at edge and ends at house
+- ✅ Arcs are smooth (not angular zigzags)

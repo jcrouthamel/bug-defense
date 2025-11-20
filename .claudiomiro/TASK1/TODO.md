@@ -1,5 +1,4 @@
-Fully implemented: YES
-Code review passed
+Fully implemented: NO
 
 ## Context Reference
 
@@ -9,459 +8,355 @@ Code review passed
 3. `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK1/PROMPT.md` - Task-specific context (files to touch, patterns to follow)
 
 **You MUST read these files before implementing to understand:**
-- Tech stack: Swift 5.x, SpriteKit, Swift Package Manager, XCTest framework
-- Project structure: 20x15 grid (40pt tiles), coordinate conversion (GridPosition ↔ CGPoint)
-- Architecture: Entity-Component pattern, main game loop in GameScene.update()
-- Coding conventions: emoji prefixes (🐛 for bugs), camelCase naming, @MainActor for game state
-- Integration points: GameScene.update() → Bug.update(deltaTime:pathfindingGrid:)
-- Root cause: Axis-locking heuristics (Bug.swift:292-315) cause diagonal drift
-- Solution: Replace with normalized vector movement toward waypoints
+- Swift 5.x + SpriteKit architecture and conventions
+- Grid system (20x15 tiles, 40pt tile size, safe zone x:1-18, y:1-13)
+- MapType enum pattern and waypoint system implementation
+- Bug vector-based movement logic (normalized direction vectors)
+- Integration points with GameScene and MapManager
+- Existing map design patterns and complexity levels
 
 **DO NOT duplicate this context below - it's already in the files above.**
 
 ## Implementation Plan
 
-- [X] **Item 1 — Replace Movement Calculation with Vector-Based Algorithm**
-
+- [ ] **Item 1 — Design Map 21 (Zigzag Lightning) Pattern and Implement in MapConfiguration.swift**
   - **What to do:**
-    1. Read `Sources/BugDefense/Bug.swift` to understand current implementation (lines 254-316)
-    2. Identify the flawed section: lines 292-315 (segment-type detection and axis-locking heuristics)
-    3. Replace lines 292-315 with normalized vector movement algorithm:
-       - Calculate direction vector: `direction = targetWorldPos - position`
-       - Calculate distance: `distance = sqrt(direction.x² + direction.y²)`
-       - Check if at waypoint: if `distance < 2.0`, snap to exact position
-       - Otherwise: normalize direction, apply speed, and move
-    4. Preserve critical existing logic:
-       - Keep lines 254-275 exactly as-is (burrowing behavior, path setup)
-       - Keep the waypoint snap logic (lines 280-285 pattern)
-       - Keep pathIndex increment logic (advance only after snap)
-       - Keep gridPosition update when waypoint reached
-    5. Add clarifying comments using 🐛 emoji prefix explaining vector normalization
-    6. Ensure the algorithm is geometrically sound:
-       - Normalization prevents speed variation with direction
-       - Snap threshold (2.0 points) prevents oscillation
-       - Direct line to target keeps bug on path tiles
-    7. Verify no performance regressions (only basic math: sqrt, division, multiplication)
+    1. Design a zigzag/lightning-bolt pattern on a 20x15 grid that creates 3-5 sharp horizontal direction changes
+    2. Choose spawn point at grid edge (x=1, x=18, y=1, or y=13) within safe zone
+    3. Create waypoint array with key turning points that form a distinctive zigzag pattern
+    4. Ensure path ends at house position GridPosition(x: 10, y: 7)
+    5. Add enum case `case map21 = "Zigzag Lightning"` to MapType (after line 25)
+    6. Implement `private var map21Path: [GridPosition]` method (before line 632, after map20Path)
+    7. Add switch case `case .map21: basePath = map21Path` to roadPath computed property (after line 63)
+    8. Verify all waypoints are within safe zone (x:1-18, y:1-13) and path length is 8-15 waypoints (will expand to 30-45 tiles)
 
   - **Context (read-only):**
-    - `Sources/BugDefense/Bug.swift:254-316` — Current update method with flawed axis-locking
-    - `Sources/BugDefense/Bug.swift:127-180` — Bug class definition, properties, initialization
-    - `Sources/BugDefense/GameConfiguration.swift:169-182` — GridPosition struct with toWorldPosition()
-    - `Sources/BugDefense/MapConfiguration.swift:71-103` — Path expansion logic (already correct)
-    - `Tests/BugDefenseTests/BugDefenseTests.swift:125-185` — Existing test pattern for road path
-    - `.claudiomiro/AI_PROMPT.md:144-166` — Recommended vector-based approach with reasoning
-    - `.claudiomiro/AI_PROMPT.md:233-288` — Testing guidance and test case examples
+    - `Sources/BugDefense/MapConfiguration.swift:5-26` — MapType enum structure and naming pattern
+    - `Sources/BugDefense/MapConfiguration.swift:42-64` — roadPath switch statement pattern
+    - `Sources/BugDefense/MapConfiguration.swift:70-103` — expandPath() method that interpolates intermediate tiles
+    - `Sources/BugDefense/MapConfiguration.swift:105-113` — housePosition and spawnPoints computed properties
+    - `Sources/BugDefense/MapConfiguration.swift:140-166` — Map 2 (Zigzag) existing pattern for reference
+    - `Sources/BugDefense/MapConfiguration.swift:480-505` — Map 14 (Lightning) existing pattern for reference
+    - `Sources/BugDefense/MapConfiguration.swift:280-318` — Map 8 (U-Turns) sharp turn pattern reference
+    - `Sources/BugDefense/MapConfiguration.swift:614-631` — Map 20 (last existing map) for placement reference
+    - `Sources/BugDefense/GameConfiguration.swift:64-67` — Grid dimensions and tile size constants
+    - `Sources/BugDefense/Bug.swift:240-302` — Bug waypoint following logic (setPath and update methods)
 
   - **Touched (will modify/create):**
-    - MODIFY: `Sources/BugDefense/Bug.swift` — Replace lines 292-315 with vector-based movement
-    - No other files modified (MapConfiguration, GameScene, GameConfiguration remain unchanged)
+    - MODIFY: `Sources/BugDefense/MapConfiguration.swift` — Add map21 enum case (after line 25)
+    - MODIFY: `Sources/BugDefense/MapConfiguration.swift` — Add map21Path method (before line 632)
+    - MODIFY: `Sources/BugDefense/MapConfiguration.swift` — Add switch case (after line 63)
 
   - **Interfaces / Contracts:**
-    - **Method signature unchanged:** `func update(deltaTime: TimeInterval, pathfindingGrid: PathfindingGrid)`
-    - **Property updates preserved:**
-      - `position: CGPoint` — Bug's world position (SpriteKit coordinate)
-      - `gridPosition: GridPosition` — Bug's grid position (synced when waypoint reached)
-      - `pathIndex: Int` — Current waypoint index (increments only after snap)
-    - **Integration contract:** Called from `GameScene.update(_:)` every frame for each active bug
-    - **Behavior contract:**
-      - Bug moves toward `movementPath[pathIndex]` waypoint
-      - When distance < 2.0, snaps to exact waypoint and advances pathIndex
-      - Movement speed = `moveSpeed * slowFactor * deltaTime`
-      - Burrowing behavior (lines 258-270) unaffected
+    - MapType enum: New case `.map21` with rawValue "Zigzag Lightning"
+    - Path method signature: `private var map21Path: [GridPosition]` returning array of waypoint GridPositions
+    - Return type: `[GridPosition]` where each GridPosition has `x: Int, y: Int` properties
+    - Integration: MapType.allCases automatically includes map21 (CaseIterable protocol)
+    - Integration: MapType.random() will include map21 in random selection pool
+    - Integration: roadPath computed property routes .map21 through expandPath(map21Path)
+    - Contract: First waypoint = spawn point, last waypoint = GridPosition(x: 10, y: 7) (house)
 
   - **Tests:**
-    Type: unit tests with XCTest (add to `Tests/BugDefenseTests/BugDefenseTests.swift`)
-    - **Happy path - Straight horizontal movement:**
-      - Create bug at (1,5) with path [(1,5), (2,5), (3,5), (4,5), (5,5)]
-      - Call update() with fixed deltaTime (0.016) repeatedly
-      - Verify position.y remains constant (world Y = 5*40+20 = 220.0)
-      - Verify bug reaches each waypoint exactly (pathIndex increments 1→2→3→4→5)
-    - **Happy path - Straight vertical movement:**
-      - Create bug at (5,1) with path [(5,1), (5,2), (5,3), (5,4), (5,5)]
-      - Call update() repeatedly
-      - Verify position.x remains constant (world X = 5*40+20 = 220.0)
-      - Verify waypoint progression
-    - **Happy path - Diagonal movement:**
-      - Create bug at (2,2) with path [(2,2), (3,3), (4,4), (5,5)]
-      - Call update() repeatedly
-      - Verify bug moves through all waypoints (no skipping)
-      - Verify position stays on straight line between waypoints
-    - **Edge case - Very close to waypoint:**
-      - Position bug 1.5 points from waypoint (distance < 2.0 threshold)
-      - Call update() once
-      - Verify bug snaps exactly to waypoint position (not just close)
-      - Verify pathIndex increments
-      - Verify gridPosition updates to current waypoint
-    - **Edge case - Very slow bug (slowFactor = 0.1):**
-      - Create beetle bug (naturally slow) with additional slow trap
-      - Verify bug still moves correctly toward waypoint
-      - Verify no NaN or infinity values in position
-    - **Edge case - Very fast bug (wasp at wave 50):**
-      - Create wasp with high wave scaling
-      - Verify bug doesn't skip waypoints (always snaps to each)
-      - Verify smooth movement between waypoints
-    - **Failure - Path completed:**
-      - Bug reaches last waypoint (pathIndex = path.count)
-      - Call update()
-      - Verify method returns early (guard at line 255)
-      - Verify no movement occurs
+    Type: Unit tests with XCTest framework
+    - Happy path: Map21 enum case exists and returns valid non-empty path array
+    - Happy path: map21Path returns array with at least 2 waypoints
+    - Validation: All waypoints in map21Path are within safe zone bounds (x:1-18, y:1-13)
+    - Validation: Last waypoint equals housePosition GridPosition(x: 10, y: 7)
+    - Validation: First waypoint is at grid edge (x=1 or x=18 or y=1 or y=13)
+    - Edge case: expandPath(map21Path) produces continuous path without gaps
+    - Integration: MapType.allCases contains map21 (count >= 21)
+    - Integration: MapType.random() can select map21 (verify it's in the pool)
 
   - **Migrations / Data:**
-    N/A - No data changes required
+    N/A - No data changes (compile-time enum definition)
 
   - **Observability:**
-    - Add temporary debug logging during development (remove before completion):
-      - Log bug position vs. target waypoint when waypoint reached
-      - Log distance calculation for verification
-    - Production logging: None needed (performance-critical hot path)
-    - If issues occur: Use Xcode debugger to inspect position/pathIndex values
+    - MapManager logs map selection: "🗺️ Selected map: Zigzag Lightning" (existing logging in MapManager.swift:645)
+    - MapManager logs random selection: "🎲 Randomly selected map: Zigzag Lightning" (existing logging in MapManager.swift:650)
+    - No additional logging required (waypoint following is already instrumented in Bug.swift)
 
   - **Security & Permissions:**
-    N/A - No security concerns (local game logic, no user input, no network, no PII)
+    N/A - No security concerns (single-player local game, no network, no user input validation needed)
 
   - **Performance:**
-    - **Critical requirement:** This runs every frame for every active bug (10-50 bugs typical)
-    - **Target:** Each update() call must complete in < 0.1ms (10,000 calls/second total budget)
-    - **Algorithmic complexity:** O(1) - constant time per call
-    - **Operations per call:** 1 sqrt, ~6 multiplications, ~4 additions (acceptable)
-    - **No allocations:** Reuse existing CGPoint properties (no new objects)
-    - **Optimization strategy:**
-      - Distance check first (cheap comparison) before normalization
-      - Single sqrt call per frame per bug (standard game math)
-      - No loops, no recursion, no complex algorithms
-    - **Verification:** Run game with 50 bugs on screen, observe frame rate stays > 60 FPS
+    - Map path definition is O(1) constant time (pre-computed array)
+    - expandPath() runs once per map selection: O(n*m) where n=waypoints, m=max(dx,dy) per segment
+    - Expected expanded path length: 30-45 tiles (moderate, within acceptable range)
+    - Memory: ~20 GridPosition structs (8 bytes each) = ~160 bytes per map definition
+    - Target: No measurable performance impact (map paths are cached in enum computed property)
 
   - **Commands:**
     ```bash
-    # Development - read file first
-    # Use Read tool on Sources/BugDefense/Bug.swift
-
-    # Implementation - make precise edit
-    # Use Edit tool to replace lines 292-315
-
-    # Build check - verify compilation
+    # Compilation check
     swift build
 
-    # Run tests - ONLY affected test file
-    swift test --filter BugDefenseTests
+    # Run all tests
+    swift test
 
-    # Optional: Run specific test
-    swift test --filter BugDefenseTests.testBugSpawningWithRoadPath
+    # Run only map-related tests
+    swift test --filter MapConfigurationTests
 
-    # Manual verification - run the game
+    # Run the game (manual testing)
     swift run BugDefenseApp
-    # (Then visually verify bugs stay on path during gameplay)
+
+    # Optional: Check specific test
+    swift test --filter testNewMapsPathValidity
     ```
 
   - **Risks & Mitigations:**
-    - **Risk:** Normalizing zero-length vector causes NaN/infinity
-      **Mitigation:** Distance check (line 280: `if distance < 2`) prevents normalization when very close to target, avoiding division by ~0
+    - **Risk:** Path waypoints outside safe zone (x:1-18, y:1-13) causing visual issues or bugs leaving grid
+      **Mitigation:** Manually verify each waypoint coordinate before implementation, add unit test to validate bounds
+    - **Risk:** Path doesn't reach house position, bugs get stuck or game becomes unwinnable
+      **Mitigation:** Ensure last waypoint is exactly GridPosition(x: 10, y: 7), add unit test to verify
+    - **Risk:** Pattern too similar to existing Map 2 (Zigzag) or Map 14 (Lightning), lacking visual distinctiveness
+      **Mitigation:** Study both existing maps carefully, design pattern with different spacing/direction changes
+    - **Risk:** Path too short (too easy) or too long (too hard), breaking game balance
+      **Mitigation:** Target 8-15 waypoints (expands to 30-45 tiles), compare to existing maps for length reference
 
-    - **Risk:** Snap threshold too small causes oscillation around waypoint
-      **Mitigation:** Threshold of 2.0 points (5% of tile size) is large enough to prevent oscillation but small enough to be visually imperceptible
-
-    - **Risk:** Performance degradation from sqrt() calls
-      **Mitigation:** One sqrt per bug per frame is standard in all game engines; profiling will verify acceptable performance
-
-    - **Risk:** Breaking burrowing or flying bug behavior
-      **Mitigation:** Only modify lines 292-315; preserve all other logic including burrowing section (lines 258-270) and method structure
-
-    - **Risk:** Grid position desync with visual position
-      **Mitigation:** Ensure `gridPosition = targetGridPos` happens exactly when `position = targetWorldPos` during waypoint snap
-
-- [X] **Item 2 — Add Unit Tests for Vector Movement**
-
+- [ ] **Item 2 — Create Unit Tests for Map 21 Path Validity**
   - **What to do:**
-    1. Open `Tests/BugDefenseTests/BugDefenseTests.swift`
-    2. Add a new test function: `testBugVectorMovementOnPath()`
-    3. Follow existing test pattern (lines 125-185) using XCTest framework
-    4. Implement test cases covering:
-       - Straight horizontal path (Y-axis locked by geometry)
-       - Straight vertical path (X-axis locked by geometry)
-       - Diagonal path (moves through all waypoints)
-       - Waypoint snap precision (exact position match)
-       - PathIndex progression (increments only after snap)
-       - GridPosition sync (updates with position)
-    5. Use fixed deltaTime (0.016) for deterministic results
-    6. Create simple test paths (3-5 waypoints) for clarity
-    7. Assert exact waypoint arrival: `XCTAssertEqual(bug.position, targetWorldPos)`
-    8. Assert grid position sync: `XCTAssertEqual(bug.gridPosition, expectedGridPos)`
-    9. Use @MainActor annotation (required for SpriteKit node access)
+    1. Create test file `Tests/BugDefenseTests/MapConfigurationTests.swift` (if it doesn't exist)
+    2. Add `import XCTest` and `@testable import BugDefense` at top
+    3. Implement test class `final class MapConfigurationTests: XCTestCase`
+    4. Write `testMap21PathValidity()` to verify:
+       - Path has at least 2 waypoints
+       - All waypoints are within bounds (0 <= x < 20, 0 <= y < 15)
+       - All waypoints are in safe zone (1 <= x <= 18, 1 <= y <= 13)
+       - Last waypoint equals GridPosition(x: 10, y: 7)
+       - First waypoint is at grid edge
+    5. Write `testMapTypeAllCasesIncludesMap21()` to verify map21 in allCases
+    6. Write `testMap21ExpandedPathIsContinuous()` to verify no gaps after expansion
+    7. Follow test pattern from `Tests/BugDefenseTests/BugDefenseTests.swift:125-185` for reference
 
   - **Context (read-only):**
-    - `Tests/BugDefenseTests/BugDefenseTests.swift:125-185` — Existing road path test pattern
-    - `Tests/BugDefenseTests/BugDefenseTests.swift:1-43` — Test setup patterns, XCTest imports
-    - `.claudiomiro/AI_PROMPT.md:251-278` — Specific test case scenarios
+    - `Tests/BugDefenseTests/BugDefenseTests.swift:1-363` — Existing test patterns and XCTest usage
+    - `Tests/BugDefenseTests/BugDefenseTests.swift:6-22` — GridPosition conversion and distance tests
+    - `Tests/BugDefenseTests/BugDefenseTests.swift:125-185` — Bug path assignment tests
+    - `Tests/BugDefenseTests/BugMovementTests.swift` — Additional movement test examples
+    - `Sources/BugDefense/MapConfiguration.swift:70-103` — expandPath algorithm to understand continuous path
+    - `Package.swift:26-28` — Test target configuration
 
   - **Touched (will modify/create):**
-    - MODIFY: `Tests/BugDefenseTests/BugDefenseTests.swift` — Add new test function (~80 lines)
+    - CREATE: `Tests/BugDefenseTests/MapConfigurationTests.swift` (new file)
 
   - **Interfaces / Contracts:**
-    - **Test framework:** XCTest
-    - **Test function signature:** `@MainActor func testBugVectorMovementOnPath()`
-    - **Test creation pattern:**
-      ```swift
-      let bug = Bug(type: .ant, at: startPos, wave: 1, difficulty: .normal)
-      bug.setPath(testPath)
-      bug.update(deltaTime: 0.016, pathfindingGrid: PathfindingGrid(width: 20, height: 15))
-      ```
-    - **Assertion pattern:** `XCTAssertEqual()`, `XCTAssertTrue()`, `XCTAssertGreaterThan()`
+    - Test class: `final class MapConfigurationTests: XCTestCase` with @MainActor if needed
+    - Test methods: Standard XCTest pattern `func testMethodName() { ... }`
+    - Assertions: XCTAssertEqual, XCTAssertTrue, XCTAssertGreaterThanOrEqual, XCTAssertNotNil
+    - Import: `@testable import BugDefense` for access to internal types
 
   - **Tests:**
-    Type: This item IS the test implementation
-    - Validates Item 1 (vector movement fix)
-    - Tests run via `swift test --filter BugDefenseTests`
-    - Each test case should pass after Item 1 is implemented
-    - If tests fail, indicates bug in vector movement logic
+    Type: Unit tests testing the tests (meta-testing not required)
+    - Verify tests compile and run successfully
+    - All assertions pass for map21 implementation
+    - Tests fail appropriately if map21 is not implemented correctly (validate test effectiveness)
 
   - **Migrations / Data:**
-    N/A - No data changes
+    N/A - Test file creation only
 
   - **Observability:**
-    - Test output shows pass/fail for each assertion
-    - Use `print()` statements in test for debugging (temporary)
-    - XCTest provides detailed failure messages with actual vs. expected values
+    - XCTest framework provides test execution logging
+    - Use descriptive test names and failure messages for clarity
+    - Example: `XCTAssertEqual(path.last, housePosition, "Map 21 path must end at house position")`
 
   - **Security & Permissions:**
-    N/A - Test code, no security concerns
+    N/A - No security concerns in tests
 
   - **Performance:**
-    - Tests should complete in < 1 second total
-    - No performance-critical code (tests run once, not in game loop)
-    - Test with small paths (3-5 waypoints) for speed
+    - All tests should complete in < 100ms (simple property checks)
+    - No I/O operations, no sleeps, no network calls
+    - Tests are deterministic and repeatable
 
   - **Commands:**
     ```bash
-    # Read existing test file for patterns
-    # Use Read tool on Tests/BugDefenseTests/BugDefenseTests.swift
+    # Run all tests
+    swift test
 
-    # Add new test function
-    # Use Edit tool to insert after line 185
+    # Run only new MapConfiguration tests
+    swift test --filter MapConfigurationTests
 
-    # Run new tests only
-    swift test --filter BugDefenseTests.testBugVectorMovementOnPath
+    # Run specific test method
+    swift test --filter MapConfigurationTests.testMap21PathValidity
 
-    # Run all tests to ensure no regressions
-    swift test --filter BugDefenseTests
+    # Verbose test output
+    swift test --verbose
     ```
 
   - **Risks & Mitigations:**
-    - **Risk:** Flaky tests due to floating-point precision
-      **Mitigation:** Use appropriate tolerance for CGFloat comparisons or exact equality for snapped positions
+    - **Risk:** Tests pass even with incorrect implementation (false positives)
+      **Mitigation:** Write tests before verifying implementation, ensure tests fail if map21 doesn't exist
+    - **Risk:** Tests are too brittle and fail on valid alternative implementations
+      **Mitigation:** Test contracts and requirements, not implementation details
+    - **Risk:** @MainActor requirement missing causing async test failures
+      **Mitigation:** Follow pattern from BugDefenseTests.swift (some tests use @MainActor, check if MapType needs it)
 
-    - **Risk:** Tests depend on SpriteKit main thread
-      **Mitigation:** Use @MainActor annotation on test functions (already established pattern)
-
-    - **Risk:** Tests break if Bug class changes
-      **Mitigation:** Follow existing test patterns; only test public API (update method, position properties)
-
-- [X] **Item 3 — Verify Visual Behavior Across Multiple Maps**
-
+- [ ] **Item 3 — Manual Testing and Visual Verification**
   - **What to do:**
     1. Build and run the game: `swift run BugDefenseApp`
-    2. Test on representative map types (suggested from AI_PROMPT.md):
-       - Map 1 (Winding Road) - Multiple turns, curves
-       - Map 8 (U-Turns) - Sharp direction changes
-       - Map 9 (Straight Shot) - Simple straight paths
-       - Map 15 (Diagonal) - Diagonal movement segments
-    3. For each map, observe bugs during gameplay:
-       - Spawn 5-10 bugs of different types (ant, beetle, spider, wasp)
-       - Watch bugs from spawn to house
-       - Verify no visual drift off brown dirt road tiles
-       - Check that bugs move smoothly (not jerky or teleporting)
-       - Confirm bugs reach house successfully (pathIndex completes)
-    4. Test edge cases during gameplay:
-       - Very slow bugs: Beetles with slow traps/towers affecting them
-       - Very fast bugs: Wasps at high wave numbers
-       - Burrowing bugs: Verify burrowing still works (visual appearance changes)
-       - Multiple bugs simultaneously: Verify no performance issues
-    5. Document any issues found:
-       - If drift occurs: Note which map, bug type, location on path
-       - If bugs skip waypoints: Note conditions (speed, path geometry)
-       - If performance drops: Note number of bugs, frame rate
-    6. If all visual checks pass: Mark this item complete
-    7. If issues found: Return to Item 1 and revise vector calculation
+    2. Use MapManager to select map21 (or wait for random selection)
+    3. Verify visual rendering:
+       - Road tiles (brown) render along entire zigzag path
+       - Grass tiles (green) render on buildable areas
+       - House tile (darker green) renders at center
+       - No visual gaps in road path
+       - Path has distinctive zigzag pattern with 3-5 horizontal segments
+    4. Spawn bugs (start wave) and verify:
+       - Bugs spawn at first waypoint (edge of map)
+       - Bugs follow zigzag path precisely without deviation
+       - Bugs move smoothly through sharp turns
+       - Bugs reach house at end of path
+       - No bugs get stuck or oscillate at waypoints
+    5. Test tower placement:
+       - Towers cannot be placed on road tiles
+       - Towers can be placed on grass between path segments
+       - Tower placement zones are sufficient for strategy
+    6. Test map switching:
+       - Change to another map and back to map21
+       - Grid redraws correctly
+       - No crashes or visual glitches
+    7. Document any issues found in this TODO.md (if any)
 
   - **Context (read-only):**
-    - `.claudiomiro/AI_PROMPT.md:246-250` — Manual testing guidance
-    - `.claudiomiro/AI_PROMPT.md:104-137` — Acceptance criteria (what to verify)
-    - `Sources/BugDefense/MapConfiguration.swift` — All 20 map definitions
+    - `Sources/BugDefense/GameScene.swift:237-304` — Grid rendering implementation
+    - `Sources/BugDefense/GameScene.swift:305-314` — redrawGrid() method
+    - `Sources/BugDefense/GameScene.swift:488-504` — spawnBug() and path assignment
+    - `Sources/BugDefense/GameScene.swift:826-856` — canPlaceStructure() tower placement blocking
+    - `Sources/BugDefense/MapConfiguration.swift:634-664` — MapManager implementation
+    - `.claudiomiro/AI_PROMPT.md:76-89` — Visual grid system description
 
   - **Touched (will modify/create):**
-    - No files modified (this is verification only)
-    - May create temporary notes file if issues found (not required)
+    - N/A - Manual testing only (no code changes)
 
   - **Interfaces / Contracts:**
-    - **Visual contract:** Bugs must appear on brown road tiles at all times
-    - **Movement contract:** Smooth continuous motion without teleporting
-    - **Performance contract:** 60 FPS with 50+ bugs on screen
-    - **Completion contract:** Bugs reach house position without getting stuck
+    - Visual contract: Road path must be visually distinct and complete
+    - Gameplay contract: Bugs must reach house following the path
+    - UI contract: Tower placement blocked on road tiles
+    - Integration contract: Map switching works without errors
 
   - **Tests:**
-    Type: manual integration/E2E testing (visual verification)
-    - **Success criteria:** No visible drift on any of 4 test maps
-    - **Success criteria:** All bug types move correctly
-    - **Success criteria:** Burrowing behavior still works
-    - **Success criteria:** No performance degradation (frame rate stable)
+    Type: Manual exploratory testing (not automated)
+    - Visual test: Path renders correctly as brown dirt road
+    - Behavioral test: Bugs spawn at start and reach house at end
+    - Behavioral test: Bugs don't deviate from path (use normalized vector movement)
+    - Edge case: Sharp turns (90-degree) are navigated smoothly
+    - Edge case: Long horizontal segments don't cause drift
+    - Integration test: Map selection includes map21 in random pool
+    - Integration test: Switching maps updates grid correctly
 
   - **Migrations / Data:**
-    N/A - No data changes
+    N/A - Testing only
 
   - **Observability:**
-    - Use visual observation during gameplay
-    - Optional: Add temporary position logging in Bug.update() for debugging
-    - Check console for any error messages or warnings
-    - Monitor frame rate counter (if available in game HUD)
+    - Watch console output for map selection logs:
+      - "🗺️ Selected map: Zigzag Lightning"
+      - "🎲 Randomly selected map: Zigzag Lightning"
+    - Observe bug positions visually (SpriteKit debug rendering if enabled)
+    - No additional logging needed for manual testing
 
   - **Security & Permissions:**
-    N/A - Local gameplay testing
+    N/A - No security concerns
 
   - **Performance:**
-    - **Target:** 60 FPS with 50 bugs on screen
-    - **Measurement:** Observe game smoothness, check frame rate if available
-    - **Acceptance:** No noticeable slowdown compared to before changes
+    - Monitor frame rate during bug movement on map21
+    - Should maintain 60 FPS with 10+ bugs on screen
+    - No stuttering or lag during path following
+    - Map switching should be instant (< 100ms)
 
   - **Commands:**
     ```bash
-    # Build and run the game
+    # Run the game
     swift run BugDefenseApp
 
-    # If issues found, add temporary debug logging:
-    # (Edit Bug.swift to add print statements in update method)
-    # Then rebuild and run:
-    swift build && swift run BugDefenseApp
+    # If using Xcode
+    open BugDefense.xcodeproj
+    # Then: Product > Run (Cmd+R)
 
-    # Check for build warnings
-    swift build 2>&1 | grep -i warning
+    # For iOS testing
+    cd BugDefenseIOS
+    # Open Xcode project and run on simulator
     ```
 
   - **Risks & Mitigations:**
-    - **Risk:** Subtle drift only visible on specific maps/conditions
-      **Mitigation:** Test on 4 different map types (winding, straight, u-turns, diagonal) to cover all path geometries
-
-    - **Risk:** Performance issues only appear with many bugs
-      **Mitigation:** Test with waves that spawn 20+ bugs simultaneously
-
-    - **Risk:** Burrowing behavior broken but not immediately visible
-      **Mitigation:** Specifically spawn burrower bugs and watch for burrow/surface animation
-
-    - **Risk:** Flying bugs accidentally affected by changes
-      **Mitigation:** Test mosquito and wasp bugs specifically (they should still work)
+    - **Risk:** Visual bugs not caught by unit tests (gaps in path, incorrect colors)
+      **Mitigation:** Thorough manual visual inspection, compare to other maps
+    - **Risk:** Bug movement issues only appear at runtime (stutter, oscillation, stuck)
+      **Mitigation:** Spawn multiple bug types, test at different game speeds, observe full path traversal
+    - **Risk:** Edge cases not covered in automated tests (specific turn sequences, boundary waypoints)
+      **Mitigation:** Test all sharp turns and edge waypoints carefully, cycle through map multiple times
+    - **Risk:** Performance degradation on complex path
+      **Mitigation:** Monitor FPS, spawn 20+ bugs to stress test
 
 ## Verification (global)
-
-- [X] Run targeted tests ONLY for changed code:
+- [ ] Run targeted tests ONLY for changed code:
       ```bash
-      # Build check
+      # Compile the project
       swift build
 
-      # Run unit tests (BugDefenseTests only)
-      swift test --filter BugDefenseTests
+      # Run all tests (focus on MapConfiguration and Bug tests)
+      swift test
 
-      # Specifically test new movement test
-      swift test --filter BugDefenseTests.testBugVectorMovementOnPath
+      # Run specific MapConfiguration tests
+      swift test --filter MapConfigurationTests
 
-      # Run existing road path test to ensure no regression
-      swift test --filter BugDefenseTests.testBugSpawningWithRoadPath
+      # Run existing bug movement tests to ensure no regression
+      swift test --filter BugMovementTests
+
+      # Run full test suite to ensure no breaking changes
+      swift test --verbose
       ```
-      **CRITICAL:** Do not run full-project checks (only test BugDefense module)
-
-- [X] All acceptance criteria met (see below)
-
-- [X] Code follows conventions from AI_PROMPT.md and PROMPT.md:
-      - Uses emoji prefix 🐛 in comments
-      - camelCase naming (normalizedDirection, moveDistance)
-      - @MainActor where needed (test functions)
-      - No commented-out code or dead code
-      - Clear variable names (direction, distance, not d, v, x1)
-
-- [X] Integration points properly implemented:
-      - `Bug.update()` signature unchanged
-      - `position` and `gridPosition` properties updated correctly
-      - Called from GameScene.update() without modifications
-      - Burrowing behavior (lines 258-270) preserved exactly
-
-- [X] Performance targets met:
-      - Each update() call completes in < 0.1ms
-      - Game runs at 60 FPS with 50 bugs
-      - Only basic math operations (1 sqrt, ~10 arithmetic ops)
-      - No allocations in hot path
-
-- [X] Security requirements satisfied:
-      N/A - No security requirements for this task
+      **CRITICAL:** Do not run full project checks beyond test suite
+- [ ] All acceptance criteria met (see below)
+- [ ] Code follows Swift conventions from AI_PROMPT.md:
+      - Enum naming pattern matches existing maps
+      - Method naming follows private var pattern
+      - GridPosition coordinates use integer literals
+      - Switch statement updated correctly
+- [ ] Integration points properly implemented:
+      - MapType.allCases includes map21 (automatic via CaseIterable)
+      - roadPath switch routes to map21Path correctly
+      - expandPath() handles map21Path waypoints without issues
+- [ ] Performance targets met:
+      - Map selection remains O(1)
+      - expandPath() runs in acceptable time (< 10ms)
+      - No memory leaks or excessive allocations
+- [ ] Manual testing confirms visual and gameplay correctness
 
 ## Acceptance Criteria
-
-From TASK.md and AI_PROMPT.md, measurable and specific:
-
-- [X] **Strict Path Adherence:** Bugs remain visually on brown dirt road tiles at all times during movement. Verified by manual testing on Maps 1, 8, 9, 15. No part of bug sprite appears significantly off-path.
-
-- [X] **Waypoint-to-Waypoint Movement:** Bugs move sequentially through each waypoint in path array. Verified by unit test checking pathIndex increments 0→1→2→3... without skipping.
-
-- [X] **Smooth Visual Motion:** Movement appears smooth and continuous, not jerky. Verified by visual observation during gameplay. Bug moves at designated speed.
-
-- [X] **Exact Waypoint Arrival:** When bug reaches waypoint, position snaps to exact world position. Verified by unit test: `XCTAssertEqual(bug.position, targetWorldPos)` passes.
-
-- [X] **Preserve Diagonal Path Segments:** Diagonal paths work correctly (Map 15). Verified by manual testing and unit test with diagonal waypoints.
-
-- [X] **Horizontal and Vertical Segments:** Orthogonal movement perfectly aligned with path tiles. Verified by unit test checking position.x or position.y remains constant on straight segments.
-
-- [X] **No Regression:** Flying bugs (mosquito, wasp) work correctly. Burrowing bugs maintain burrow/surface mechanics. Verified by visual testing and checking lines 258-270 unchanged.
-
-- [X] **Speed Consistency:** Movement speed calculation accurate. Formula `moveSpeed * slowFactor * deltaTime` preserved. Verified by code review and slow/fast bug testing.
-
-- [X] **Grid Position Sync:** `Bug.gridPosition` stays synchronized with `Bug.position`. Verified by unit test: `XCTAssertEqual(bug.gridPosition, expectedGridPos)` after waypoint snap.
-
-- [X] **Edge Cases Handled:** All edge cases pass unit tests:
-  - Bugs starting at spawn (first waypoint)
-  - Bugs reaching house (last waypoint, guard returns early)
-  - Very slow bugs (slowFactor = 0.1) move correctly
-  - Very fast bugs (wasp, wave 50) don't skip waypoints
-  - Distance < 2.0 triggers exact snap
-
-- [X] **All Maps Work:** Fix works correctly across representative maps (1, 8, 9, 15) without special-casing. Verified by manual testing.
-
-- [X] **Performance:** No significant performance degradation. 60 FPS maintained with 50 bugs. Only basic math operations (O(1) complexity). Verified by gameplay observation.
-
-- [X] **Code Quality:**
-  - Swift build completes without errors or warnings
-  - All unit tests pass (new + existing)
-  - Code follows Swift conventions and project patterns
-  - Clear comments explain vector normalization approach
-  - No dead code or commented-out sections
+- [ ] Map 21 enum case (`case map21 = "Zigzag Lightning"`) added to MapType after line 25
+- [ ] `private var map21Path: [GridPosition]` method implemented before line 632
+- [ ] Switch case `case .map21: basePath = map21Path` added after line 63
+- [ ] All map21Path waypoints are within safe zone (1 <= x <= 18, 1 <= y <= 13)
+- [ ] Path starts at grid edge position (x=1, x=18, y=1, or y=13)
+- [ ] Path ends at house position GridPosition(x: 10, y: 7)
+- [ ] Path creates distinctive zigzag/lightning-bolt pattern with 3-5 horizontal direction changes
+- [ ] Path length is 8-15 key waypoints (expands to approximately 30-45 tiles)
+- [ ] Code compiles without errors: `swift build` succeeds
+- [ ] Unit tests created in MapConfigurationTests.swift covering path validity
+- [ ] All tests pass: `swift test` succeeds with 0 failures
+- [ ] Bugs spawn at first waypoint and reach house following zigzag path (manual test)
+- [ ] Road tiles (brown) render correctly along entire path (visual verification)
+- [ ] Towers cannot be placed on road tiles (gameplay verification)
+- [ ] MapType.allCases contains 21 maps (count check)
+- [ ] MapType.random() can select map21 (integration verification)
+- [ ] Pattern is visually distinct from existing Map 2 (Zigzag) and Map 14 (Lightning)
+- [ ] No regression: existing maps still work correctly
 
 ## Impact Analysis
-
 - **Directly impacted:**
-  - `Sources/BugDefense/Bug.swift:292-315` (modified) - Movement calculation replaced with vector-based algorithm
-  - `Tests/BugDefenseTests/BugDefenseTests.swift` (modified) - New test function added (~80 lines after line 185)
+  - `Sources/BugDefense/MapConfiguration.swift` (3 additions: enum case, path method, switch case)
+  - `Tests/BugDefenseTests/MapConfigurationTests.swift` (new test file)
 
 - **Indirectly impacted:**
-  - `Sources/BugDefense/GameScene.swift` - Calls Bug.update(), sees improved movement (no code changes)
-  - `Sources/BugDefense/MapConfiguration.swift` - Road paths now followed precisely (no code changes)
-  - All 20 map layouts - Bugs now stay on paths correctly (no code changes)
-  - Future TASK2 (Unit Tests) - Depends on this fix being complete
-  - Future TASK3 (Manual Testing) - Validates this implementation works visually
-  - Future TASKΩ (Verification) - Final validation of all acceptance criteria
-
-- **No impact:**
-  - Flying bugs use same update method but unaffected (burrowing section preserved)
-  - Tower, trap, house mechanics unchanged
-  - Wave spawning, pathfinding grid, game state unchanged
+  - `MapType.allCases` — count increases to 21 (automatic via CaseIterable)
+  - `MapType.random()` — selection pool expands to include map21 (automatic)
+  - `MapManager.selectRandomMap()` — can now select map21
+  - `GameScene.spawnBug()` — will assign map21Path when map21 is active
+  - Future TASK2-TASK10 — parallel tasks adding maps 22-30 (same pattern)
+  - TASK11 — aggregation task may depend on all maps being implemented
+  - TASKΩ — final validation may test all maps including map21
 
 ## Follow-ups
-
-- None identified
-
-**Note:** All context has been extracted from AI_PROMPT.md, TASK.md, and PROMPT.md. All file paths, line numbers, patterns, and technical details are based on actual codebase analysis. The implementation is self-contained and executable by an autonomous agent without external clarification.
-
-
-## PREVIOUS TASKS CONTEXT FILES AND RESEARCH: 
-- /Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md
-- /Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK0/ANALYSIS.md
-- /Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK0/CONTEXT.md
-- /Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK0/RESEARCH.md
-- /Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK0/TODO.md
-- /Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK1/RESEARCH.md
-- /Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK1/RESEARCH.md
-
+- None identified - task is well-defined with clear requirements and patterns to follow
+- Note: This is one of 10 parallel map design tasks (TASK1-TASK10)
+- Pattern established here applies to remaining map tasks (TASK2-TASK10)
+- Consider adding map difficulty ratings in future enhancement (not in current scope)

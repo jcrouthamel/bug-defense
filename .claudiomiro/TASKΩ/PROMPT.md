@@ -1,255 +1,157 @@
 ## PROMPT
-Perform final system-level validation that all requirements from AI_PROMPT.md have been met. Verify the bug movement fix is complete, correct, and regression-free by cross-referencing all acceptance criteria against the implementation and test results.
+Perform final cohesion validation to ensure all 10 new maps are correctly integrated and the complete feature is production-ready.
 
-**Your objective:** Create a comprehensive verification report that proves (or disproves) that the work is complete and the user's requirement "keep bugs on the path at all times" has been fully satisfied.
+**Your mission:** Verify the entire system works cohesively - all maps integrated, tests pass, no regressions, requirements satisfied.
 
 ## COMPLEXITY
-Low
+Medium
 
 ## CONTEXT REFERENCE
 **For complete environment context, read:**
-- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Contains full acceptance criteria (Section 4), verification checklist (Section 6), success definition (Section 1), and all requirements
+- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Contains full tech stack, architecture, project structure, coding conventions, and related code patterns
 
-**You MUST read AI_PROMPT.md before executing this task to understand all requirements.**
+**You MUST read AI_PROMPT.md before executing this task to understand the environment.**
 
 ## TASK-SPECIFIC CONTEXT
 
-### What This Task Does
-This is the **Final Ω Validation Task** that depends on all previous tasks:
-- **TASK0:** Root cause analysis (foundation)
-- **TASK1:** Implementation fix (core work)
-- **TASK2:** Unit testing (automated verification)
-- **TASK3:** Manual testing (visual verification)
+### Files This Task Will Verify (Read-Only)
+- `Sources/BugDefense/MapConfiguration.swift` - Verify all 10 new maps present
+- `Tests/BugDefenseTests/MapConfigurationTests.swift` - Verify tests exist
+- All other source files - Verify no regressions
 
-Your job: Verify that together, these tasks fully satisfy the user's requirement.
+### This Task Does NOT Write Code
+This is a **validation and verification task only**. Do not modify code unless fixing critical bugs discovered during validation.
 
-### The 12 Acceptance Criteria to Verify
-From AI_PROMPT.md Section 4, check ALL of these:
+### What to Validate
 
-1. **Strict Path Adherence** - Bugs visually on road tiles at all times
-2. **Waypoint-to-Waypoint Movement** - Sequential waypoint progression
-3. **Smooth Visual Motion** - No jerky or teleporting movement
-4. **Exact Waypoint Arrival** - Position snaps exactly at waypoints
-5. **Preserve Diagonal Path Segments** - Diagonal movement works
-6. **Horizontal and Vertical Segments** - Orthogonal alignment perfect
-7. **No Regression** - Flying/burrowing bugs unchanged
-8. **Speed Consistency** - Speed calculations accurate
-9. **Grid Position Sync** - gridPosition stays synchronized
-10. **Edge Cases Handled** - Slow/fast bugs, various paths work
-11. **All Maps Work** - Fix works across all map geometries
-12. **Performance** - No significant performance degradation
+**1. Completeness:**
+- [ ] All 10 new maps (map21-map30) exist in MapType enum
+- [ ] All 10 path methods implemented
+- [ ] All 10 cases in roadPath switch
+- [ ] Tests exist for all new maps
 
-### Verification Sources
-Each criterion should be verified using outputs from previous tasks:
+**2. Correctness:**
+- [ ] All tests pass: `swift test`
+- [ ] Code compiles: `swift build`
+- [ ] No warnings or errors
 
-- **TASK0 output:** Root cause analysis document (in CONTEXT.md or similar)
-- **TASK1 output:** Modified Bug.swift with vector-based movement
-- **TASK2 output:** Unit tests + test results (`swift test`)
-- **TASK3 output:** Manual testing report
+**3. Requirements Traceability:**
+- [ ] Every requirement from AI_PROMPT.md addressed
+- [ ] All acceptance criteria met (see AI_PROMPT.md lines 121-167)
+- [ ] No requirements skipped
 
-### Success Definition
-From AI_PROMPT.md Section 1:
-> "Bugs move smoothly along the road path without ever visually appearing off the brown dirt road tiles, maintaining precise alignment with the path at all times during their journey from spawn to house."
+**4. Integration:**
+- [ ] MapType.allCases includes new maps
+- [ ] Random selection works
+- [ ] Existing maps (1-20) still work
 
-Your validation should confirm this is TRUE.
-
-### Self-Verification Checklist
-From AI_PROMPT.md Section 6, verify these 8 items:
-
-- [ ] Code review: Does the movement logic make geometric sense?
-- [ ] Unit tests: Do tests cover the critical cases?
-- [ ] Manual testing: Did you actually run the game and watch bugs?
-- [ ] Multiple maps: Did you test at least 3 different map types?
-- [ ] Bug types: Did you test with both slow and fast bugs?
-- [ ] Code clarity: Is the movement logic simple and understandable?
-- [ ] No regressions: Do flying bugs and burrowers still work?
-- [ ] Documentation: Are any complex decisions explained in comments?
+**5. Quality:**
+- [ ] Code style consistent
+- [ ] Maps visually distinct
+- [ ] Difficulty range appropriate (easy to hard)
 
 ## EXTRA DOCUMENTATION
 
-### Verification Process
+### Validation Procedure
 
-**Step 1: Gather Evidence**
-- Read TASK0 analysis findings
-- Read TASK1 implementation in Bug.swift
-- Run `swift test` to see TASK2 test results
-- Read TASK3 manual testing report
-
-**Step 2: Cross-Reference Requirements**
-For each of the 12 acceptance criteria:
-1. Identify which task(s) address it
-2. Find the evidence (code, test, report)
-3. Make explicit determination: ✅ Met or ❌ Not met
-4. Document reasoning
-
-**Step 3: Run Final Tests**
+**Step 1: Build and Test**
 ```bash
-# Ensure all tests pass
-swift test
-
-# Ensure clean build
 swift build
-
-# Quick smoke test (optional)
-swift run
+swift test --filter MapConfigurationTests
 ```
+Expected: All pass, no errors.
 
-**Step 4: Create Traceability Matrix**
-Map each requirement to its implementation and verification:
+**Step 2: Code Inspection**
+Open `Sources/BugDefense/MapConfiguration.swift`:
+- Count new enum cases (should be 10)
+- Count new path methods (should be 10)
+- Count new switch cases (should be 10)
+- Verify naming follows pattern
 
-| Requirement | Where Implemented | How Verified | Status |
-|-------------|-------------------|--------------|--------|
-| Path adherence | TASK1: Bug.swift vector movement | TASK2 tests + TASK3 visual | ✅ |
-| ... | ... | ... | ... |
+**Step 3: Requirements Matrix**
+For each requirement in AI_PROMPT.md acceptance criteria (lines 121-167):
+- [ ] Locate implementation
+- [ ] Verify it works
+- [ ] Check off as validated
 
-**Step 5: Final Decision**
-Based on all evidence, determine:
-- ✅ **COMPLETE:** All criteria met, work is done
-- ❌ **INCOMPLETE:** Some criteria not met, specify which tasks need rework
-- ⚠️ **NEEDS REVIEW:** Uncertain, needs discussion
+**Step 4: Pattern Variety**
+Verify all 10 maps have distinct patterns:
+- Zigzag, Cloverleaf, Double Helix, Switchback, Diagonal Cross
+- Perimeter Loop, Figure-8, Wave, Starburst, Labyrinth
 
-### Evidence Locations
+**Step 5: Manual Testing (If Possible)**
+If game can run:
+- Test 3-5 new maps
+- Verify bugs navigate correctly
+- Check visual rendering
+- Confirm tower blocking works
 
-**TASK0 Evidence:**
-- Root cause analysis should be in TASK0/CONTEXT.md or similar
-- Should explain why drift occurs and why vector normalization fixes it
+**Step 6: Regression Check**
+- Verify existing maps (1-20) unchanged
+- Verify existing systems work
+- No new bugs introduced
 
-**TASK1 Evidence:**
-- Modified code in `Sources/BugDefense/Bug.swift` (lines 276-315)
-- Should show vector normalization implementation
-- Should have clear comments explaining approach
+### Success Criteria
 
-**TASK2 Evidence:**
-- Test file: `Tests/BugDefenseTests/BugMovementTests.swift`
-- Test results: Output of `swift test`
-- Should show 7+ tests, all passing, covering edge cases
+**This task passes ONLY when ALL of these are true:**
+- ✅ 10+ new maps implemented
+- ✅ All tests pass
+- ✅ Code compiles without errors
+- ✅ All requirements from AI_PROMPT.md satisfied
+- ✅ No existing functionality broken
+- ✅ Maps are visually distinct
+- ✅ Integration points work correctly
+- ✅ System is production-ready
 
-**TASK3 Evidence:**
-- Manual testing report (in TASK3/CONTEXT.md or separate file)
-- Should document testing Maps 1, 8, 9, 15
-- Should confirm visual quality and no drift observed
+**If ANY criterion fails:**
+- ❌ Return to relevant task to fix
+- ❌ Re-run this validation
+- ❌ Do not mark complete until all pass
 
-### Traceability Matrix Template
+### Traceability Checklist
 
-```markdown
-# Requirement Traceability Matrix
-
-## 1. Strict Path Adherence
-- **Requirement:** Bugs MUST remain visually on brown dirt road tiles at all times
-- **Implementation:** TASK1 - Vector normalization in Bug.swift:XXX-YYY
-- **Verification:**
-  - TASK2: Unit tests verify position stays within tolerance
-  - TASK3: Manual testing on Maps 1, 8, 15 confirms visual adherence
-- **Status:** ✅ Met
-- **Evidence:** [Specific test names or report sections]
-
-## 2. Waypoint-to-Waypoint Movement
-- **Requirement:** Bugs move sequentially through each waypoint
-- **Implementation:** TASK1 - pathIndex increment logic in Bug.swift:XXX
-- **Verification:**
-  - TASK2: Tests verify pathIndex increments correctly
-  - TASK2: Tests verify no waypoint skipping
-- **Status:** ✅ Met
-- **Evidence:** [Specific test names]
-
-[Continue for all 12 criteria...]
-```
-
-### Final Validation Report Template
-
-```markdown
-# Final Validation Report - Bug Movement Fix
-
-## Executive Summary
-[Overall status: COMPLETE / INCOMPLETE / NEEDS REVIEW]
-[Brief summary of findings]
-
-## Acceptance Criteria Verification
-
-### ✅ Criteria Met (X/12)
-[List criteria that are fully satisfied with evidence]
-
-### ❌ Criteria Not Met (Y/12)
-[List criteria that are not satisfied with explanation]
-
-### ⚠️ Criteria Uncertain (Z/12)
-[List criteria where verification is unclear]
-
-## Test Results
-
-### Unit Tests (TASK2)
-- Total tests: X
-- Passing: Y
-- Failing: Z
-- Coverage: Changed lines in Bug.update()
-
-### Manual Tests (TASK3)
-- Maps tested: [List]
-- Bug types tested: [List]
-- Visual quality: [Assessment]
-- Regression testing: [Results]
-
-## Code Quality Review
-
-### Implementation (TASK1)
-- Code clarity: [Assessment]
-- Follows conventions: [Yes/No]
-- Performance: [No regressions / Issues found]
-- Documentation: [Adequate / Needs improvement]
-
-## Traceability Matrix
-[Full matrix linking all 12 requirements to implementation and verification]
-
-## Issues Found
-[List any issues, gaps, or concerns]
-
-## Recommendations
-[Any follow-up work suggested]
-
-## Final Decision
-**Status:** ✅ COMPLETE / ❌ INCOMPLETE / ⚠️ NEEDS REVIEW
-
-**Reasoning:** [Explanation of decision]
-
-**Next Steps:** [If incomplete, what needs to be done]
-```
+From AI_PROMPT.md:
+- [ ] "create 10 new maps" → Verify 10 new MapType cases
+- [ ] "waypoint-based pathfinding" → Verify Bug.swift unchanged, paths work
+- [ ] "keep bugs on path" → Manual test or review vector movement
+- [ ] "visually distinct paths" → Inspect 10 different patterns
+- [ ] "house position consistent" → All paths end at (10, 7)
+- [ ] "random map selection" → MapType.random() includes new maps
+- [ ] "paths in safe zone" → Unit tests verify bounds
+- [ ] "varied difficulty" → Easy (perimeter) to Hard (labyrinth)
 
 ## LAYER
-Ω (Final validation - depends on all other tasks)
+Ω (Final validation layer)
 
 ## PARALLELIZATION
 Parallel with: []
-This task must run after all other tasks complete.
+Depends on: [TASK0, TASK1, TASK2, TASK3, TASK4, TASK5, TASK6, TASK7, TASK8, TASK9, TASK10, TASK11]
 
 ## CONSTRAINTS
-- IMPORTANT: Do not perform any git commit or git push
-- **No new implementation** - only verify existing work
-- **Be thorough** - check all 12 acceptance criteria explicitly
-- **Be honest** - if something is not verified, say so
-- Run actual tests (`swift test`) - don't assume they pass
-- Read actual outputs from previous tasks - don't assume they exist
-- Create clear, documented traceability matrix
-- Make explicit final decision: COMPLETE / INCOMPLETE / NEEDS REVIEW
+- **IMPORTANT:** Do not perform any git commit or git push
+- This is validation only - minimal code changes
+- If bugs found, fix them or delegate to relevant task
+- Must validate ENTIRE system, not just parts
+- Do not skip any validation steps
 
-## DELIVERABLES
+## VALIDATION CHECKLIST
 
-1. **Requirement Traceability Matrix**
-   - All 12 acceptance criteria mapped to implementation and verification
-   - Clear status (✅/❌/⚠️) for each
+**Before marking this task complete:**
+- [ ] All 10 maps implemented correctly
+- [ ] All tests pass (`swift test`)
+- [ ] Code compiles (`swift build`)
+- [ ] All AI_PROMPT.md requirements satisfied
+- [ ] No regressions in existing functionality
+- [ ] Maps are visually distinct
+- [ ] Integration points validated
+- [ ] Code is production-ready
+- [ ] Traceability matrix complete
+- [ ] Ready for deployment
 
-2. **Final Validation Report**
-   - Executive summary
-   - Detailed verification results
-   - Test results summary
-   - Code quality assessment
-   - Issues found (if any)
-   - Clear final decision
+## FINAL SIGN-OFF
 
-3. **Self-Verification Checklist**
-   - All 8 items from AI_PROMPT.md Section 6 checked
-   - Evidence documented for each
+**Only mark TASKΩ complete when you can confidently state:**
 
-4. **Overall Status Determination**
-   - Clear statement: Work is COMPLETE / INCOMPLETE / NEEDS REVIEW
-   - Reasoning for the decision
-   - Next steps if incomplete
+> "I have verified that all 10 new maps are correctly implemented, integrated, and tested. The waypoint system works with all new maps. Visual rendering is correct. No existing functionality is broken. All requirements from AI_PROMPT.md are satisfied. The system is cohesive and production-ready."
+
+**If you cannot make this statement, the task is NOT complete.**

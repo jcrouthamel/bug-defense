@@ -1,242 +1,254 @@
-@dependencies [TASK0, TASK1, TASK2, TASK3]
-# Task: Final Integration Verification and System Validation
+@dependencies [TASK0, TASK1, TASK2, TASK3, TASK4, TASK5, TASK6, TASK7, TASK8, TASK9, TASK10, TASK11]
+# Task: Final Cohesion Validation and System Verification
 
 ## Summary
-Perform comprehensive final validation that all requirements from AI_PROMPT.md have been met. This task verifies that the bug movement fix is complete, correct, and doesn't introduce regressions. It ensures system-level coherence across all changes and tests.
-
-**Why this matters:** This is the mandatory system-level validation step that confirms the entire fix works as a cohesive whole and satisfies all acceptance criteria. It's the final checkpoint before considering the work complete.
+Perform comprehensive final validation that all 10 new maps are correctly integrated, the waypoint system functions properly with new maps, visual rendering is correct, and no existing functionality has regressed. This is the mandatory system-level validation ensuring the complete feature is production-ready.
 
 ## Context Reference
 **For complete environment context, see:**
-- `../AI_PROMPT.md` - Contains full acceptance criteria (Section 4), verification checklist (Section 6), and success definition (Section 1)
+- `../AI_PROMPT.md` - Contains full tech stack, architecture, coding conventions, and related code patterns
 
 **Task-Specific Context:**
-This is a verification and validation task that depends on all previous tasks being complete.
+Final validation task that ensures the entire feature (10 new maps + waypoint system integration) works cohesively.
 
-### Dependencies
-This task validates the outputs of:
-- **TASK0:** Analysis and root cause identification
-- **TASK1:** Implementation of vector-based movement fix
-- **TASK2:** Unit tests for movement logic
-- **TASK3:** Manual visual testing across maps
+### Files This Task Will Verify
+**Read and validate (no modifications):**
+- `Sources/BugDefense/MapConfiguration.swift` - Verify all 10 maps properly integrated
+- `Sources/BugDefense/Bug.swift` - Confirm waypoint system still works
+- `Sources/BugDefense/GameScene.swift` - Verify integration points unchanged/working
+- `Tests/BugDefenseTests/MapConfigurationTests.swift` - Verify tests exist and pass
 
-### What This Task Verifies
-From AI_PROMPT.md Section 6 (Verification and Traceability):
-Every acceptance criterion must be explicitly addressed. This task cross-checks all 12 requirements against the implementation and test results.
+### System Integration Points to Validate
+- MapType enum contains all 30+ maps (20 existing + 10 new)
+- MapType.allCases automatically includes new maps (CaseIterable)
+- MapType.random() selects from complete pool
+- MapManager.selectRandomMap() works with expanded set
+- GameScene.spawnBug() assigns paths correctly
+- GameScene.canPlaceStructure() blocks towers on all road paths
+- Grid rendering (drawGrid/redrawGrid) shows road tiles for new maps
 
 ## Complexity
-Low
+Medium
 
 ## Dependencies
-Depends on: [TASK0, TASK1, TASK2, TASK3]
+Depends on: [TASK0, TASK1, TASK2, TASK3, TASK4, TASK5, TASK6, TASK7, TASK8, TASK9, TASK10, TASK11]
 Blocks: []
 Parallel with: []
 
 ## Detailed Steps
 
-### 1. Verify All Previous Tasks Are Complete
-- [ ] TASK0 completed: Root cause analysis documented
-- [ ] TASK1 completed: Bug.swift modified with vector-based movement
-- [ ] TASK2 completed: Unit tests written and passing
-- [ ] TASK3 completed: Manual testing done with test report
+### 1. Code Completeness Verification
+- [ ] Verify MapType enum has 10 new cases (map21-map30)
+- [ ] Verify each new map has corresponding path method (map21Path-map30Path)
+- [ ] Verify roadPath switch statement includes all 10 new cases
+- [ ] Verify no compilation errors or warnings
+- [ ] Verify code style consistency with existing maps
 
-### 2. Cross-Reference Acceptance Criteria
-Verify each acceptance criterion from AI_PROMPT.md Section 4:
+### 2. Requirement Traceability Check
+Cross-reference with AI_PROMPT.md acceptance criteria (lines 121-167):
 
-**A. Strict Path Adherence**
-- Source: TASK3 manual testing report
-- Verify: "Bugs remain visually on brown dirt road tiles at all times"
-- Status: ✅ / ❌
+**Map Design Requirements:**
+- [ ] At least 10 new unique map layouts created
+- [ ] Each map has distinct visual pattern (verified in code review)
+- [ ] All paths stay within safe zone (x:1-18, y:1-13)
+- [ ] Paths start at edge positions
+- [ ] Paths end at house GridPosition(x: 10, y: 7)
+- [ ] No path overlaps house except final destination
+- [ ] Path lengths vary (short and long maps created)
+- [ ] Mix of difficulty levels (easy, moderate, hard)
 
-**B. Waypoint-to-Waypoint Movement**
-- Source: TASK1 implementation + TASK2 unit tests
-- Verify: pathIndex increments sequentially, bugs don't skip waypoints
-- Status: ✅ / ❌
+**Waypoint System Requirements:**
+- [ ] Each map's waypoint array defines complete bug path
+- [ ] Waypoints stored as [GridPosition] arrays
+- [ ] Path expansion correctly fills intermediate tiles
+- [ ] Bugs spawn at first waypoint (integration point)
+- [ ] Bugs move sequentially through waypoints (existing system)
+- [ ] Bugs snap to waypoints when within 2-point threshold (existing)
+- [ ] Bugs advance to next waypoint (existing system)
+- [ ] Final waypoint matches house position
 
-**C. Smooth Visual Motion**
-- Source: TASK3 manual testing report
-- Verify: No jerky or teleporting movement observed
-- Status: ✅ / ❌
+**Visual Requirements:**
+- [ ] Road tiles render correctly along paths (manual verification)
+- [ ] Grass tiles render on non-path areas
+- [ ] House position renders distinctly
+- [ ] No visual gaps in road paths
+- [ ] Grid updates when map changes
 
-**D. Exact Waypoint Arrival**
-- Source: TASK1 implementation (snap at distance < 2.0) + TASK2 tests
-- Verify: Position snaps to exact waypoint world position
-- Status: ✅ / ❌
+**Integration Requirements:**
+- [ ] MapType.random() selects from all maps including new ones
+- [ ] MapManager.selectRandomMap() works with expanded pool
+- [ ] Bugs receive correct path via setPath()
+- [ ] Tower placement blocked on all road positions
+- [ ] Path recalculation works when map changes
+- [ ] Grid redraw reflects new map layouts
 
-**E. Preserve Diagonal Path Segments**
-- Source: TASK3 Map 15 testing
-- Verify: Diagonal movement works correctly without drift
-- Status: ✅ / ❌
-
-**F. Horizontal and Vertical Segments**
-- Source: TASK2 unit tests + TASK3 Map 9 testing
-- Verify: Orthogonal movement perfectly aligned
-- Status: ✅ / ❌
-
-**G. No Regression**
-- Source: TASK3 regression testing section
-- Verify: Flying bugs and burrowing bugs unchanged
-- Status: ✅ / ❌
-
-**H. Speed Consistency**
-- Source: TASK1 implementation + TASK2 slow/fast bug tests
-- Verify: Movement respects moveSpeed * slowFactor * deltaTime
-- Status: ✅ / ❌
-
-**I. Grid Position Sync**
-- Source: TASK1 implementation + TASK2 tests
-- Verify: gridPosition updates when waypoint reached
-- Status: ✅ / ❌
-
-**J. Edge Cases Handled**
-- Source: TASK2 unit tests + TASK3 manual testing
-- Verify: Slow bugs, fast bugs, starting position, various path types all work
-- Status: ✅ / ❌
-
-**K. All Maps Work**
-- Source: TASK3 manual testing (Maps 1, 8, 9, 15)
-- Verify: Fix works across different map geometries without special-casing
-- Status: ✅ / ❌
-
-**L. Performance**
-- Source: TASK1 implementation review
-- Verify: Only basic vector math, no expensive allocations or loops
-- Status: ✅ / ❌
-
-### 3. Run Complete Test Suite
-Execute all tests to confirm everything passes:
-
+### 3. Testing Verification
 ```bash
+# Run all tests
 swift test
-```
 
-- Verify: All unit tests pass (0 failures)
-- Verify: TASK2 movement tests specifically pass
-- Check for: Any unexpected test failures
+# Specifically run map tests
+swift test --filter MapConfigurationTests
 
-### 4. Build and Smoke Test
-Final build verification:
-
-```bash
+# Build and verify no errors
 swift build
 ```
 
-- Verify: Clean build with no errors or warnings
-- Verify: Game launches successfully
-- Quick smoke test: Start wave on any map, verify bugs move correctly
+Expected results:
+- [ ] All tests pass
+- [ ] No compilation errors
+- [ ] No warnings (or only acceptable warnings)
 
-### 5. Code Quality Review
-Review TASK1 changes in Bug.swift:
+### 4. Manual Playtesting (If Possible)
+If game can be run:
+- [ ] Test at least 3 new maps in-game
+- [ ] Verify bugs spawn at path start
+- [ ] Confirm bugs follow path precisely to house
+- [ ] Check road tiles render correctly
+- [ ] Test tower placement blocking on roads
+- [ ] Verify map switching works (tier progression)
+- [ ] Confirm no crashes or visual glitches
 
-- [ ] Code is clean and readable
-- [ ] No commented-out code or debug prints left behind
-- [ ] Comments explain key decisions (emoji prefixed with 🐛)
-- [ ] Follows Swift naming conventions
-- [ ] No unnecessary complexity
+### 5. Pattern Variety Verification
+Ensure visual variety across all 10 new maps:
+- [ ] Map 21: Zigzag/lightning pattern
+- [ ] Map 22: Cloverleaf/four-petal loop
+- [ ] Map 23: Double helix/S-curves
+- [ ] Map 24: Switchback/hairpin turns
+- [ ] Map 25: Diagonal cross/X-pattern
+- [ ] Map 26: Perimeter loop (easy/long)
+- [ ] Map 27: Figure-8/infinity symbol
+- [ ] Map 28: Wave/sine pattern
+- [ ] Map 29: Starburst/radial spokes
+- [ ] Map 30: Labyrinth maze (hard/complex)
 
-### 6. Documentation Completeness Check
-Verify documentation is complete:
+### 6. Regression Testing
+Verify no existing functionality broken:
+- [ ] Existing maps (1-20) still work
+- [ ] Bug movement system unchanged
+- [ ] Tower placement still works
+- [ ] Game progression (tier system) unchanged
+- [ ] Path expansion algorithm still works
+- [ ] Grid rendering for old maps unchanged
 
-- [ ] TASK0 has root cause analysis documented
-- [ ] TASK1 has clear code comments in Bug.swift
-- [ ] TASK2 has comprehensive test coverage
-- [ ] TASK3 has test report with findings
-- [ ] This TASKΩ has final validation checklist completed
+### 7. Documentation Review
+- [ ] Code comments are clear for complex patterns
+- [ ] Map names are descriptive (enum rawValue strings)
+- [ ] No TODO or FIXME comments left in code
+- [ ] Test file has clear documentation
 
-### 7. Requirement Traceability Matrix
-Create final traceability mapping:
+### 8. Final Acceptance Criteria Review
+From AI_PROMPT.md section "Completeness Criteria" (lines 370-387):
 
-| Requirement | Implementation | Verification | Status |
-|-------------|----------------|--------------|--------|
-| Path adherence | TASK1 vector movement | TASK2 tests + TASK3 visual | ✅/❌ |
-| Waypoint-to-waypoint | TASK1 pathIndex logic | TASK2 tests | ✅/❌ |
-| Smooth motion | TASK1 normalized vector | TASK3 visual | ✅/❌ |
-| Exact arrival | TASK1 snap at distance < 2 | TASK2 tests | ✅/❌ |
-| Diagonal paths | TASK1 vector approach | TASK3 Map 15 | ✅/❌ |
-| Orthogonal paths | TASK1 vector approach | TASK2 + TASK3 | ✅/❌ |
-| No regression | TASK1 preserved code | TASK3 regression | ✅/❌ |
-| Speed consistency | TASK1 formula preserved | TASK2 slow/fast | ✅/❌ |
-| Grid sync | TASK1 gridPosition update | TASK2 tests | ✅/❌ |
-| Edge cases | TASK1 distance check | TASK2 edge tests | ✅/❌ |
-| All maps | TASK1 no special-casing | TASK3 multi-map | ✅/❌ |
-| Performance | TASK1 simple math | Code review | ✅/❌ |
+**Task is complete when:**
+- [ ] ✅ 10+ new maps defined in MapConfiguration.swift
+- [ ] ✅ All new maps follow existing pattern and conventions
+- [ ] ✅ Bugs navigate new maps correctly using waypoint system
+- [ ] ✅ Visual grid renders new paths properly
+- [ ] ✅ No existing functionality broken
+- [ ] ✅ Code compiles and runs without errors
+- [ ] ✅ Basic tests validate new map properties
 
-### 8. Self-Verification Checklist
-From AI_PROMPT.md Section 6:
-
-- [ ] **Code review:** Does the movement logic make geometric sense?
-- [ ] **Unit tests:** Do tests cover the critical cases?
-- [ ] **Manual testing:** Did you actually run the game and watch bugs?
-- [ ] **Multiple maps:** Did you test at least 3 different map types?
-- [ ] **Bug types:** Did you test with both slow and fast bugs?
-- [ ] **Code clarity:** Is the movement logic simple and understandable?
-- [ ] **No regressions:** Do flying bugs and burrowers still work?
-- [ ] **Documentation:** Are any complex decisions explained in comments?
-
-### 9. Final Decision
-Based on all verification steps:
-
-**Overall Status:** ✅ COMPLETE / ❌ INCOMPLETE / ⚠️ NEEDS REVIEW
-
-**Remaining Issues (if any):**
-- [List any outstanding issues or concerns]
-
-**Recommendations:**
-- [Any follow-up work or improvements suggested]
+**Task is NOT complete if:**
+- [ ] ❌ Fewer than 10 new maps
+- [ ] ❌ Any map paths go outside safe zone
+- [ ] ❌ Bugs don't reach house or get stuck
+- [ ] ❌ Road tiles don't render on path
+- [ ] ❌ Compilation errors exist
+- [ ] ❌ Existing maps stop working
 
 ## Acceptance Criteria
-- [ ] **All 12 acceptance criteria verified**: Each criterion from AI_PROMPT.md Section 4 has been checked and confirmed
-- [ ] **All tests passing**: `swift test` shows 0 failures
-- [ ] **Clean build**: `swift build` completes successfully
-- [ ] **Manual testing complete**: TASK3 report confirms visual quality
-- [ ] **No regressions found**: Flying and burrowing bugs work correctly
-- [ ] **Traceability matrix complete**: All requirements mapped to implementation and tests
-- [ ] **Code quality verified**: Bug.swift changes are clean and well-documented
-- [ ] **Self-verification checklist complete**: All 8 items checked
-- [ ] **Final status determined**: Clear COMPLETE/INCOMPLETE/NEEDS_REVIEW decision
+
+### Code Quality
+- [ ] All 10 new maps implemented correctly
+- [ ] Code compiles without errors
+- [ ] Code follows Swift and SpriteKit conventions
+- [ ] No code style inconsistencies
+
+### Functional Correctness
+- [ ] All paths are valid (bounds, endpoint, connectivity)
+- [ ] All maps accessible via enum and random selection
+- [ ] Waypoint system works with all new maps
+- [ ] Integration points function correctly
+
+### Testing
+- [ ] Unit tests exist and pass
+- [ ] Test coverage adequate for new maps
+- [ ] No test failures or flaky tests
+
+### Requirements Coverage
+- [ ] All requirements from AI_PROMPT.md satisfied
+- [ ] No requirement skipped or missed
+- [ ] All acceptance criteria met
+
+### System Cohesion
+- [ ] New maps integrate seamlessly with existing system
+- [ ] No regressions in existing functionality
+- [ ] Visual consistency maintained
+- [ ] Gameplay balance preserved
 
 ## Code Review Checklist
-N/A - This is a validation task that reviews outputs of previous tasks.
+- [ ] Every requirement from AI_PROMPT.md has been addressed
+- [ ] All 10 maps are visually distinct
+- [ ] Path patterns provide gameplay variety
+- [ ] Difficulty range is appropriate (easy to hard)
+- [ ] Code is production-ready
+- [ ] No debug code or temporary hacks remain
+- [ ] All integration points validated
 
 ## Reasoning Trace
 
-**Why a separate validation task?**
-From the decomposition instructions: "Always create a Final Ω Task that depends on all others, verifies all modules interact correctly, ensures no requirement was forgotten."
+**Why this task is mandatory:**
+- Final gate to ensure system coherence
+- Validates that all individual tasks compose correctly
+- Catches integration issues not visible in isolated tasks
+- Ensures no requirements were forgotten
+- Provides confidence for production deployment
 
-This task serves as:
-1. **Integration checkpoint** - Verifies all pieces work together
-2. **Completeness check** - Ensures nothing was missed
-3. **Quality gate** - Final review before considering work done
-4. **Documentation** - Creates record of what was verified
+**Why it depends on all other tasks:**
+- Cannot validate a system that doesn't exist
+- Requires all maps implemented (TASK1-10)
+- Requires tests written (TASK11)
+- Requires foundation understanding (TASK0)
 
-**What makes validation "complete"?**
-- All acceptance criteria explicitly checked (not assumed)
-- Tests actually run and pass (not just exist)
-- Manual testing actually performed (not just planned)
-- Traceability matrix shows clear path from requirement → implementation → verification
+**What makes this task unique:**
+- Only task that views system holistically
+- Focuses on integration and cohesion, not individual components
+- Ensures original user intent fully satisfied
+- Final quality gate before considering feature complete
 
-**If validation fails:**
-This task should identify:
-- Which acceptance criteria are not met
-- Which tests are failing
-- Which requirements lack verification
-- What needs to be done to achieve completeness
+**Success criteria:**
+This task passes when a developer or reviewer can confidently say:
+> "The system now has 10 new unique maps, they all work correctly with the waypoint system, visual rendering is correct, tests pass, and nothing is broken. This is ready for production."
 
-Then either:
-- Return to relevant TASK to fix issue
-- Escalate if issue requires design change
-- Document as known limitation if acceptable
+**If any validation fails:**
+- Do not mark this task complete
+- Return to relevant task (TASK1-11) to fix issue
+- Re-run this validation
+- This task is only complete when ALL criteria pass
 
-**Success criteria for this task:**
-This task succeeds when we can confidently state:
-> "All requirements from AI_PROMPT.md have been implemented, tested, and verified. The bug movement fix is complete and correct."
+## Traceability Matrix
 
-**Failure modes to catch:**
-- Tests written but not run
-- Requirements assumed but not tested
-- Visual testing skipped or incomplete
-- Regressions not checked
-- Performance not considered
-- Documentation missing or unclear
+| AI_PROMPT.md Requirement | Implementation Location | Validated By |
+|-------------------------|------------------------|--------------|
+| "create 10 new maps" | MapConfiguration.swift enum cases 21-30 | Code inspection + count |
+| "waypoint-based pathfinding system" | Existing Bug.swift + new map paths | Manual testing |
+| "keep bugs strictly on paths" | Vector movement (Bug.swift:292-300) | Visual verification |
+| "paths visually distinct" | 10 different pattern types | Pattern variety check |
+| "house position consistent" | All paths end at (10,7) | Unit tests |
+| "random map selection works" | MapType.random() + allCases | Integration test |
+| "paths stay in safe zone" | All coordinates 1-18, 1-13 | Unit tests |
+| "bugs follow precisely" | Waypoint system integration | Manual playtesting |
+| "varied path patterns" | 10 distinct designs | Visual inspection |
+| "mix of difficulty levels" | Easy (map26) to Hard (map30) | Path length analysis |
 
-This validation task ensures none of these failure modes occurred.
+## Final Deliverable Checklist
+
+Before marking TASKΩ complete:
+- [ ] All code changes reviewed and approved
+- [ ] All tests passing
+- [ ] All requirements traced and verified
+- [ ] No regressions detected
+- [ ] System is cohesive and production-ready
+- [ ] Documentation is complete
+- [ ] Ready for git commit (though won't commit per constraints)

@@ -1,393 +1,503 @@
-# AI Execution Prompt: Ensure Bugs Stay on Path at All Times
+# 🎯 Purpose
 
-## 1. 🎯 Purpose
+Create 10 new unique maps for the Bug Defense tower defense game and implement a waypoint-based pathfinding system that keeps bugs strictly on predefined paths to the house.
 
-**What:** Fix bug movement behavior to ensure bugs remain strictly on the predefined road path at all times, preventing visual drift or deviations during movement between waypoints.
+**Why this matters:** The current game needs more map variety to increase replayability and engagement. Additionally, a waypoint system ensures bugs follow intended paths rather than using dynamic pathfinding, which provides better gameplay control and visual clarity for players.
 
-**Why:** Currently, bugs can visually drift off the path during movement, especially when moving between waypoints. This breaks the visual and gameplay expectations that bugs should follow the brown dirt road path visible on the grid. The core game mechanic relies on bugs following predefined winding roads that cannot be blocked by towers.
-
-**Success Definition:** Bugs move smoothly along the road path without ever visually appearing off the brown dirt road tiles, maintaining precise alignment with the path at all times during their journey from spawn to house.
-
----
-
-## 2. 📁 Environment & Codebase Context
-
-**Tech Stack:**
-- Swift 5.x with SpriteKit framework
-- macOS/iOS cross-platform game (tower defense)
-- Git version control, currently on `feature/bugs-stay-on-path` branch
-- Swift Package Manager for build management
-
-**Project Structure:**
-- `Sources/BugDefense/` - Main game source code
-  - `GameScene.swift` - Main game loop and scene management
-  - `Bug.swift` - Bug entity class with movement logic
-  - `MapConfiguration.swift` - Map layouts and road path definitions
-  - `PathfindingGrid.swift` - A* pathfinding (currently unused for ground bugs)
-  - `GameState.swift` - Game state management
-  - `GameConfiguration.swift` - Game constants and configuration
-- `Tests/BugDefenseTests/` - Unit tests
-- Grid system: 20x15 tiles (width x height), tile size 40 points
-- Coordinate system: GridPosition (integer grid coords) ↔ world position (CGPoint in SpriteKit)
-
-**Architecture Pattern:**
-- Entity-Component pattern with SpriteKit nodes
-- Managers handle game systems (GameStateManager, WaveManager, MapManager)
-- Main game loop in `GameScene.update(_:)` calls entity updates
-
-**Key Files:**
-- **Bug.swift (Lines 254-316)**: `Bug.update(deltaTime:pathfindingGrid:)` method contains movement logic
-- **MapConfiguration.swift (Lines 40-103)**: Path definition and expansion to include all tiles
-- **GameScene.swift (Lines 488-504, 1009-1018)**: Bug spawning and path assignment
-- **GameConfiguration.swift**: Contains tile size (40.0) and grid dimensions (20x15)
-
-**Current Movement System:**
-Bugs receive a predefined road path from `MapManager.shared.getCurrentRoadPath()` which is an array of `GridPosition` waypoints. The path includes ALL tiles between major waypoints (expanded via `expandPath()` in MapConfiguration.swift:71-103). Bugs move from waypoint to waypoint using delta-time based movement in `Bug.update()`.
-
-**Existing Conventions:**
-- Grid coordinates: (0,0) is bottom-left, (19,14) is top-right
-- World coordinates: Converted via `GridPosition.toWorldPosition()` (position * tileSize + tileSize/2)
-- Emoji-based sprite rendering for bugs (🐜, 🪲, 🕷️, etc.)
-- Movement speed is wave-scaled and can be slowed by towers/traps
-- Comments use emoji prefixes (🐛 for bugs, 🗺️ for maps, etc.)
-
-**Current State:**
-The movement logic in `Bug.swift:254-316` attempts to lock movement to horizontal or vertical segments, but bugs can still drift diagonally or cut corners between waypoints, especially on curved paths. The issue is in the movement calculation between waypoints (lines 276-315).
+**Success definition:**
+- 10+ distinct, playable map layouts with varied path patterns
+- Bugs follow waypoint paths precisely without deviation
+- Paths are visually distinct on the grid
+- House position remains consistent across maps
+- Random map selection works correctly
 
 ---
 
-## 3. 🧩 Related Code Context
+# 📁 Environment & Codebase Context
 
-**Movement Logic Reference (Bug.swift:254-316):**
-The current `update(deltaTime:pathfindingGrid:)` method:
-1. Gets target waypoint from `movementPath[pathIndex]`
-2. Calculates distance to target
-3. Attempts to determine segment direction (horizontal/vertical/diagonal)
-4. Moves toward target using `moveSpeed * slowFactor * deltaTime`
-5. Snaps to exact position when within 2 points of waypoint
+## Tech Stack
+- **Language:** Swift 5.x
+- **Framework:** SpriteKit (Apple's 2D game engine)
+- **Platform:** macOS and iOS (cross-platform using conditional compilation)
+- **Build Tool:** Swift Package Manager
+- **Architecture:** Entity-Component pattern with managers
 
-**Problem Areas:**
-- Lines 292-315: Movement calculation that attempts axis-locking but uses imprecise heuristics
-- Line 298-303: Diagonal movement allows free movement in both axes
-- Lines 304-314: Horizontal/vertical locking uses `deltaX > deltaY` heuristic which doesn't guarantee on-path movement
-
-**Path Definition Pattern (MapConfiguration.swift:71-103):**
-Paths are defined as sparse waypoints, then expanded to include every grid tile between waypoints. This ensures bugs have fine-grained waypoints to follow. Example:
-```swift
-// Sparse definition
-[GridPosition(x: 1, y: 3), GridPosition(x: 4, y: 3), GridPosition(x: 4, y: 7)]
-
-// Expands to every tile in between
-[GridPosition(x: 1, y: 3), GridPosition(x: 2, y: 3), GridPosition(x: 3, y: 3),
- GridPosition(x: 4, y: 3), GridPosition(x: 4, y: 4), GridPosition(x: 4, y: 5), ...]
+## Project Structure
+```
+Sources/BugDefense/
+├── GameScene.swift           # Main game loop and scene management
+├── Bug.swift                 # Enemy entity with movement logic
+├── MapConfiguration.swift    # Map definitions and waypoint paths
+├── MapManager.swift          # Current map selection (inside MapConfiguration.swift)
+├── GameConfiguration.swift   # Global game constants
+├── DefenseStructure.swift    # Tower base class
+├── GameState.swift          # Game state management
+└── [Other game systems...]
 ```
 
-**Grid-World Conversion Pattern (GameConfiguration.swift):**
+## Grid System
+- **Grid Size:** 20x15 tiles (GameConfiguration.gridWidth x gridHeight)
+- **Tile Size:** 40 points (GameConfiguration.tileSize)
+- **World Size:** 800x600 points
+- **Safe Zone:** Grid positions within x:1-18, y:1-13 (avoiding edges)
+- **House Position:** Fixed at GridPosition(x: 10, y: 7) - center of grid
+- **Coordinate System:** Origin at bottom-left (standard SpriteKit)
+
+## Current Architecture
+
+### Map System
+- **MapType enum:** Defines all available map layouts (currently 20 maps)
+- Each map has:
+  - `roadPath`: Array of GridPosition waypoints defining the bug path
+  - `housePosition`: Where the house is located (always center)
+  - `spawnPoints`: Where bugs spawn (first position of roadPath)
+- **MapManager:** Singleton that manages current map selection and provides path data
+
+### Bug Movement System (Critical Context)
+Bugs use a **waypoint-following system** (Bug.swift:240-302):
+1. Each bug receives a path array via `setPath()`
+2. In `update()`, bugs move toward the current waypoint using **normalized vector movement**
+3. When within 2 points of a waypoint, they snap to it and advance to the next
+4. Movement is calculated using: `position += (direction / distance) * moveDistance`
+
+**Key Implementation Detail (Bug.swift:292-300):**
 ```swift
-// GridPosition to world position
-func toWorldPosition() -> CGPoint {
-    let tileSize = GameConfiguration.tileSize // 40.0
-    return CGPoint(
-        x: CGFloat(x) * tileSize + tileSize / 2,
-        y: CGFloat(y) * tileSize + tileSize / 2
-    )
+// Use normalized vector movement for all directions
+let normalizedDx = dx / distance
+let normalizedDy = dy / distance
+position.x += normalizedDx * moveDistance
+position.y += normalizedDy * moveDistance
+```
+
+This ensures bugs:
+- Move in straight lines between waypoints
+- Stay precisely on the path
+- Handle diagonal, horizontal, and vertical segments identically
+
+### Visual Grid System (GameScene.swift:237-304)
+The grid is rendered with:
+- Road tiles: Brown dirt color (fills roadPath positions)
+- Grass tiles: Green (buildable areas)
+- House tile: Dark green
+- Decorative elements: Trees, rocks, bushes (randomly placed on non-road tiles)
+
+### Integration Points
+- **GameScene.swift:488-504:** `spawnBug()` retrieves the current map's road path and assigns it to bugs
+- **GameScene.swift:1009-1018:** `recalculateBugPaths()` updates all active bugs when structures are placed
+- **GameScene.swift:305-314:** `redrawGrid()` refreshes visual grid when map changes
+- **GameScene.swift:826-856:** `canPlaceStructure()` prevents tower placement on roads
+
+---
+
+# 🧩 Related Code Context
+
+### Similar Map Pattern Examples (MapConfiguration.swift)
+- **Map 1 (Winding Road):** Classic serpentine with multiple turns - see lines 118-137
+- **Map 9 (Straight Shot):** Simple horizontal path - see lines 319-332
+- **Map 11 (Box Spiral):** Complex spiral from outside to center - see lines 350-412
+- **Map 5 (Maze Runner):** Intricate maze-like path - see lines 205-239
+
+### Path Expansion System (MapConfiguration.swift:70-103)
+The `expandPath()` method takes waypoint corners and fills in all intermediate GridPositions:
+- Calculates deltas (dx, dy) between consecutive waypoints
+- Interpolates positions using integer division
+- Ensures no gaps or duplicates
+- This allows defining paths with just key turning points
+
+### Map Selection Flow
+1. **Initialization:** MapManager starts with map1
+2. **Random Selection:** `MapManager.shared.selectRandomMap()` picks from MapType.allCases
+3. **Tier Progression:** Maps change at tier boundaries (every 10 waves) - see GameScene.swift:1287-1290
+4. **Map Switching:** Triggers grid redraw and tower reset
+
+### Constraints
+- **No structures on roads:** GameScene.swift:840-844 blocks tower placement on roadPath
+- **House position blocked:** GameScene.swift:834-838 prevents building on house
+- **Grid boundaries:** All positions must be within 0-19 (x) and 0-14 (y)
+- **Path connectivity:** First waypoint must be spawn point, last must reach house
+
+---
+
+# ✅ Acceptance Criteria
+
+Each criterion below must be independently verifiable:
+
+## Map Design Requirements
+- [ ] Create at least 10 new unique map layouts (beyond existing maps)
+- [ ] Each map has a distinct visual pattern (zigzag, spiral, S-curve, etc.)
+- [ ] All paths stay within safe zone boundaries (x:1-18, y:1-13)
+- [ ] Paths start at an edge position (spawn point)
+- [ ] Paths end at house position GridPosition(x: 10, y: 7)
+- [ ] No path segment overlaps with house position (except final destination)
+- [ ] Path lengths vary (some short and direct, some long and winding)
+- [ ] Mix of difficulty levels (easy straight paths, complex maze-like paths)
+
+## Waypoint System Requirements
+- [ ] Each map's waypoint array defines the complete bug path
+- [ ] Waypoints are stored as `[GridPosition]` arrays
+- [ ] Path expansion correctly fills intermediate tiles between waypoints
+- [ ] Bugs spawn at the first waypoint position
+- [ ] Bugs move sequentially through waypoints using vector-based movement
+- [ ] Bugs snap to exact waypoint position when within 2-point threshold
+- [ ] Bugs advance to next waypoint after reaching current target
+- [ ] Final waypoint matches house position
+
+## Visual Requirements
+- [ ] Road tiles (brown) correctly render along entire path
+- [ ] Grass tiles (green) render on non-path areas
+- [ ] House position renders with distinct darker green
+- [ ] No visual gaps in road paths
+- [ ] Grid updates correctly when map changes
+
+## Integration Requirements
+- [ ] `MapType.random()` can select from all maps including new ones
+- [ ] `MapManager.selectRandomMap()` works with expanded map pool
+- [ ] Bugs receive correct path via `setPath()` when spawned
+- [ ] Tower placement blocked on all road positions
+- [ ] Path recalculation works when map changes mid-game
+- [ ] Grid redraw reflects new map layout
+
+## Edge Cases & Error Scenarios
+- [ ] **Diagonal segments:** Bugs move smoothly on diagonal paths without stair-stepping
+- [ ] **Sharp turns:** Bugs navigate 90-degree turns precisely
+- [ ] **Long straight segments:** Bugs don't drift off path on extended straight lines
+- [ ] **Map switching:** Changing maps mid-game doesn't crash or leave orphaned bugs
+- [ ] **Empty paths:** System handles degenerate cases (though shouldn't occur)
+- [ ] **Path validation:** No map creates unreachable or blocked paths
+
+---
+
+# ⚙️ Implementation Guidance
+
+## Execution Layers
+
+### Layer 0: Foundation (Must Complete First)
+1. **Review existing map patterns** in MapConfiguration.swift (lines 115-631)
+2. **Understand GridPosition system** and coordinate mapping
+3. **Analyze vector movement implementation** in Bug.swift (lines 275-301)
+4. **Study path expansion algorithm** in MapConfiguration.swift (lines 70-103)
+
+### Layer 1: Map Design (Can Parallelize)
+For each new map:
+1. **Design waypoint pattern** on paper/sketch (20x15 grid)
+2. **Define key turning points** as GridPosition array
+3. **Name map** with descriptive MapType case (e.g., .map21, .map22, etc.)
+4. **Implement path method** returning waypoint array
+5. **Add to switch statement** in `var roadPath`
+
+Example new map structure:
+```swift
+case .map21 = "Creative Name"
+
+private var map21Path: [GridPosition] {
+    return [
+        GridPosition(x: 1, y: 5),   // Spawn point (edge)
+        GridPosition(x: 3, y: 5),
+        GridPosition(x: 3, y: 8),
+        // ... more waypoints ...
+        GridPosition(x: 10, y: 7)   // House position (end)
+    ]
 }
 ```
 
-**Integration Points:**
-- `GameScene.update(_:)` → `Bug.update(deltaTime:pathfindingGrid:)` (called every frame)
-- `Bug.setPath(_:)` called when spawning (GameScene.swift:500)
-- Movement affects `Bug.position` (SpriteKit world coords) and `Bug.gridPosition` (grid coords)
-- Visual rendering automatically follows `position` property
+### Layer 2: System Integration
+1. **Add new MapType cases** to enum (line 5)
+2. **Add to allCases** (automatic via CaseIterable)
+3. **Update switch in roadPath** (line 43)
+4. **Test random selection** picks new maps
+
+### Layer 3: Visual & Gameplay Validation
+1. **Verify grid rendering** shows road correctly
+2. **Test bug spawning** at first waypoint
+3. **Observe bug movement** through entire path
+4. **Confirm tower blocking** on road tiles
+5. **Test map switching** between old and new maps
+
+## Expected Artifacts
+
+### Code Changes
+- **MapConfiguration.swift:**
+  - Add 10+ new MapType enum cases
+  - Implement corresponding path methods
+  - Update roadPath switch statement
+
+### Tests
+**Philosophy:** Test the new maps integration, not the existing engine.
+
+**Scope:**
+- Unit tests for new map path validity (paths reach house, stay in bounds)
+- Integration test for map selection (random picks from full pool)
+- Visual verification (manual playtesting)
+
+**Skip:**
+- Vector movement logic (already implemented and working)
+- Path expansion algorithm (core system, not changed)
+- UI rendering (SpriteKit built-in)
+
+### Configuration
+No configuration changes needed - maps are compile-time definitions.
+
+### Documentation
+- Update AI_PROMPT.md with implementation notes
+- Add inline comments for complex path patterns
+- Document map characteristics (difficulty, length, pattern type)
+
+## Constraints
+
+### What NOT to Do
+- ❌ Don't modify the vector movement algorithm in Bug.swift (already optimal)
+- ❌ Don't change the grid size or tile size (affects entire game balance)
+- ❌ Don't move the house position (fixed game design requirement)
+- ❌ Don't create paths that go outside safe zone x:1-18, y:1-13
+- ❌ Don't add dynamic pathfinding (defeats purpose of waypoint system)
+- ❌ Don't modify path expansion algorithm (working correctly)
+
+### Performance Requirements
+- Map selection must be O(1) - use enum cases, not dynamic loading
+- Path arrays should be pre-computed, not generated at runtime
+- Keep path arrays reasonable length (10-50 waypoints typical)
+
+### Design Guidelines
+- **Variety:** Mix straight, curved, zigzag, spiral, maze patterns
+- **Balance:** Some easy (short/direct), some hard (long/complex)
+- **Visual Appeal:** Paths should look intentional, not random
+- **Gameplay:** Longer paths = more time to place towers = easier
+- **Theming:** Consider naming maps after patterns (Cloverleaf, Lightning, etc.)
 
 ---
 
-## 4. ✅ Acceptance Criteria
+# 5.1 Testing Guidance (Minimal & Relevant)
 
-The solution must satisfy ALL of the following requirements:
+## Philosophy
+Test changed code with minimum sufficient evidence. Focus on integration of new maps, not re-testing existing engine.
 
-- [ ] **Strict Path Adherence**: Bugs MUST remain visually on the brown dirt road tiles at all times during movement. No part of the bug sprite should appear significantly off-path during transit between waypoints.
+## Testing Approach
 
-- [ ] **Waypoint-to-Waypoint Movement**: Bugs move sequentially through each waypoint in the path array without skipping, cutting corners, or taking shortcuts.
+### Unit Tests Required
+**File to create:** `Tests/BugDefenseTests/MapConfigurationTests.swift`
 
-- [ ] **Smooth Visual Motion**: Movement appears smooth and continuous, not jerky or teleporting. Bugs should move at their designated speed (considering wave scaling and slow factors).
+Test only new map path validity:
+```swift
+func testNewMapsPathValidity() {
+    let newMaps: [MapType] = [.map21, .map22, /* ... */]
 
-- [ ] **Exact Waypoint Arrival**: When a bug reaches a waypoint, its position should snap to the exact world position of that grid tile before advancing to the next waypoint.
+    for map in newMaps {
+        let path = map.roadPath
 
-- [ ] **Preserve Diagonal Path Segments**: Some map paths include diagonal movements (e.g., Map 15: Diagonal). These must work correctly without causing bugs to drift off-path.
+        // Must have at least 2 points (start and end)
+        XCTAssertGreaterThanOrEqual(path.count, 2)
 
-- [ ] **Horizontal and Vertical Segments**: Standard orthogonal movement must remain perfectly aligned with the path tiles.
+        // Must end at house
+        XCTAssertEqual(path.last, map.housePosition)
 
-- [ ] **No Regression**: Flying bugs (mosquito, wasp) are unaffected. Burrowing bugs maintain their special mechanics. All other bug types function correctly.
+        // All points must be in bounds
+        for pos in path {
+            XCTAssertTrue(pos.x >= 0 && pos.x < 20)
+            XCTAssertTrue(pos.y >= 0 && pos.y < 15)
+        }
+    }
+}
 
-- [ ] **Speed Consistency**: Movement speed calculations remain accurate. Bugs respect their `moveSpeed`, wave scaling, and `slowFactor` multipliers.
+func testMapRandomSelectionIncludesNewMaps() {
+    // Verify new maps can be randomly selected
+    let allMaps = MapType.allCases
+    XCTAssertGreaterThanOrEqual(allMaps.count, 30) // 20 existing + 10 new
+}
+```
 
-- [ ] **Grid Position Sync**: The `Bug.gridPosition` property stays synchronized with the bug's visual `position` throughout movement.
+### Integration Tests
+**Manual testing procedure:**
+1. Build and run game
+2. Use dev console or code to cycle through new maps
+3. Verify:
+   - Bugs spawn at start of path
+   - Bugs follow path precisely to house
+   - Road tiles render along path
+   - Towers can't be placed on road
+4. Test map switching mid-game (tier progression)
 
-- [ ] **Edge Cases Handled**:
-  - Bugs starting exactly at spawn point (first waypoint)
-  - Bugs reaching the house (last waypoint)
-  - Very slow bugs (due to slow traps/towers)
-  - Very fast bugs (spiders, wasps with wave scaling)
-  - Paths with many small segments vs. few long segments
+### Skip These Tests
+- ❌ Bug movement logic (unchanged, already tested)
+- ❌ Path expansion algorithm (core system, not modified)
+- ❌ Grid rendering (SpriteKit framework responsibility)
+- ❌ Collision detection (no changes)
 
-- [ ] **All Maps Work**: The fix must work correctly across all 20 map layouts (map1-map20) without special-casing.
+## Coverage Target
+- **100% of new map definitions** (path validity tests)
+- **Integration points** (map selection, path assignment)
+- **Zero coverage needed** for unchanged systems
 
-- [ ] **Performance**: No significant performance degradation. The fix should not add expensive calculations per frame per bug.
+## Test Execution
+Run tests with:
+```bash
+swift test --filter MapConfigurationTests
+```
 
----
-
-## 5. ⚙️ Implementation Guidance
-
-### Execution Strategy
-
-**Root Cause Analysis:**
-The current movement logic (Bug.swift:292-315) tries to infer segment direction from waypoint deltas and lock axes accordingly. However, this approach:
-1. Doesn't account for the bug's current position relative to the path
-2. Allows diagonal movement that can drift off-path
-3. Uses imprecise heuristics (`deltaX > deltaY`) that don't guarantee path alignment
-
-**Recommended Approach:**
-Instead of inferring segment direction, **strictly constrain movement to stay on the line between current grid position and target waypoint**. Since the path is already expanded to include all intermediate tiles, the bug should:
-1. Move directly toward the target waypoint's exact world position
-2. Use proper vector normalization to maintain speed while moving toward target
-3. Lock position exactly to the waypoint's world position when close enough
-4. Only then advance to the next waypoint
-
-**Alternative: Tile-by-Tile Movement**
-An even simpler approach: Since paths are already expanded to every tile, treat each waypoint transition as moving to an adjacent or diagonal tile. Lock movement perfectly to the path by:
-1. Moving in a straight line toward the current waypoint's world position
-2. Maintaining speed by normalizing the direction vector
-3. Snapping precisely when close enough (within 1-2 points)
-
-### Implementation Layers
-
-**Layer 0 (Foundation):**
-1. **Analyze current Bug.update() method** (lines 254-316)
-   - Understand how `pathIndex` tracks progress
-   - Identify where position drift occurs
-   - Determine why axis-locking fails
-
-2. **Review path expansion logic** (MapConfiguration.swift:71-103)
-   - Confirm paths include all intermediate tiles
-   - Verify waypoints are properly ordered
-   - Check for any gaps or issues
-
-**Layer 1 (Core Fix):**
-1. **Rewrite movement calculation** (Bug.swift:276-315)
-   - Calculate direction vector from current position to target waypoint world position
-   - Normalize the direction vector
-   - Apply speed and delta time: `moveDistance = moveSpeed * slowFactor * CGFloat(deltaTime)`
-   - Move along direction: `position += normalizedDirection * moveDistance`
-   - Remove the segment-type detection heuristics (lines 292-314)
-
-2. **Improve waypoint detection** (Bug.swift:280-285)
-   - Keep the distance check and snap behavior
-   - Ensure position snaps EXACTLY to `targetWorldPos` when waypoint reached
-   - Verify `gridPosition` updates correctly
-   - Ensure `pathIndex` increments only after snap
-
-**Layer 2 (Validation):**
-1. **Add debug logging** (temporary)
-   - Log bug position vs. expected waypoint position
-   - Track distance from path centerline
-   - Verify pathIndex progression
-
-2. **Visual verification**
-   - Test on multiple maps (especially Map 15: Diagonal, Map 8: U-Turns)
-   - Watch bugs closely during curves and turns
-   - Verify no visual drift off brown road tiles
-
-### Expected Code Changes
-
-**Primary File: Bug.swift**
-- Modify `update(deltaTime:pathfindingGrid:)` method (lines 254-316)
-- Simplify movement logic to direct vector-based movement
-- Ensure position snapping is precise
-
-**No changes needed:**
-- MapConfiguration.swift (paths are already correct)
-- GameScene.swift (spawning logic is fine)
-- PathfindingGrid.swift (not used for ground bugs)
-
-### Constraints
-
-**What NOT to do:**
-- Do NOT change the path definition system in MapConfiguration.swift
-- Do NOT add pathfinding for ground bugs (they use predefined paths)
-- Do NOT modify the grid-to-world coordinate conversion logic
-- Do NOT change bug speed calculations or wave scaling
-- Do NOT add complex state machines or animation systems
-
-**Performance Requirements:**
-- Movement calculation is called every frame for every active bug
-- Solution must be computationally simple (basic vector math only)
-- Avoid allocations in hot path (use existing properties)
-
-**Backward Compatibility:**
-- Preserve all bug properties (health, speed, damage, slow factor, etc.)
-- Maintain existing burrowing behavior (lines 258-270)
-- Keep flying bug behavior unchanged (they use different pathfinding)
+Manual playtesting: 5-10 minutes per new map to verify visual and gameplay correctness.
 
 ---
 
-## 5.1 Testing Guidance (Minimal & Relevant)
+# 🔍 Verification and Traceability
 
-**Philosophy:** Test changed code with minimum sufficient evidence. Focus on movement correctness.
+## Requirements Mapping
+Every aspect of the user's original request must be addressed:
 
-**Test Scope:**
-- **Unit Tests:** Test the `Bug.update()` movement logic in isolation
-  - Create a bug with a simple 3-waypoint path
-  - Call `update()` multiple times with fixed deltaTime
-  - Verify bug reaches each waypoint exactly
-  - Verify position never drifts significantly from expected path
+| User Requirement | Implementation Location | Verification Method |
+|-----------------|------------------------|---------------------|
+| "create 10 new maps" | MapConfiguration.swift enum cases | Count new MapType cases |
+| "waypoint system" | Bug.swift setPath() + update() | Observe bug movement |
+| "keep bugs on path" | Vector-based movement (Bug.swift:292-300) | Visual confirmation |
+| "store waypoints as array of CGPoint" | [GridPosition] arrays (equivalent to CGPoint) | Code inspection |
+| "move to next point in game loop" | Bug.update() method | Runtime observation |
+| "check proximity" | distance < 2 threshold (Bug.swift:280) | Code inspection |
+| "switch target to next waypoint" | pathIndex += 1 (Bug.swift:284) | Code inspection |
+| "loop/end behavior" | Path ends at house (no loop) | Game design verification |
 
-- **Manual Testing:** Visual verification is critical for this fix
-  - Run the game and observe bugs on different maps
-  - Use Map 1 (Winding Road), Map 8 (U-Turns), Map 15 (Diagonal)
-  - Verify bugs stay on brown road tiles throughout journey
-  - Test with slow bugs (beetles) and fast bugs (spiders, wasps)
+## Self-Verification Checklist for AI Agent
 
-**Test Cases:**
+Before considering task complete, verify:
+- [ ] At least 10 new MapType enum cases added
+- [ ] Each new map has corresponding path method implemented
+- [ ] All new maps added to roadPath switch statement
+- [ ] Compiled successfully without errors
+- [ ] Tests pass (if written)
+- [ ] Manually tested at least 3 new maps in-game
+- [ ] Bugs follow paths precisely (no diagonal drift)
+- [ ] Road tiles render correctly
+- [ ] Random map selection includes new maps
+- [ ] No regression in existing map functionality
 
-1. **Straight Horizontal Path**
-   - Bug moves from (1,5) → (5,5)
-   - Position.y should remain constant at world Y for y=5
-   - Bug should arrive exactly at each waypoint
+## Completeness Criteria
+**The task is complete when:**
+1. ✅ 10+ new maps are defined in MapConfiguration.swift
+2. ✅ All new maps follow existing pattern and conventions
+3. ✅ Bugs navigate new maps correctly using waypoint system
+4. ✅ Visual grid renders new paths properly
+5. ✅ No existing functionality broken
+6. ✅ Code compiles and runs without errors
+7. ✅ Basic tests validate new map properties
 
-2. **Straight Vertical Path**
-   - Bug moves from (5,1) → (5,5)
-   - Position.x should remain constant at world X for x=5
-   - Bug should arrive exactly at each waypoint
-
-3. **Diagonal Path**
-   - Bug moves from (2,2) → (5,5)
-   - Bug should move in a straight line through intermediate diagonal tiles
-   - Should pass through (3,3) and (4,4) if those are waypoints
-
-4. **Complex Curved Path**
-   - Use actual map path (e.g., Map 1)
-   - Bug completes entire path
-   - Visual verification: no drift off road tiles
-   - Functional verification: reaches house position
-
-5. **Edge Cases**
-   - Very slow bug (slowFactor = 0.1) still moves correctly
-   - Very fast bug (wasp with wave 50 scaling) doesn't skip waypoints
-   - Bug starting exactly at first waypoint
-
-**Success Criteria:**
-- All unit tests pass
-- Manual testing shows no visible drift on any of the 20 maps
-- Bugs reach house correctly
-- No performance degradation
-
-**Coverage Target:**
-- 100% of changed lines in Bug.update() method
-- If any edge case cannot be covered, document in code comments
+**The task is NOT complete if:**
+- ❌ Fewer than 10 new maps
+- ❌ Any map paths go outside safe zone
+- ❌ Bugs don't reach house or get stuck
+- ❌ Road tiles don't render on path
+- ❌ Compilation errors exist
+- ❌ Existing maps stop working
 
 ---
 
-## 6. 🔍 Verification and Traceability
+# 🧠 Reasoning Boundaries
 
-**Requirement Traceability:**
-Every acceptance criterion must be explicitly addressed in the implementation or test plan. The implementation must demonstrate:
+## Design Philosophy
+- **Favor simplicity:** Follow existing MapType pattern exactly
+- **Preserve working systems:** Don't modify Bug movement or path expansion
+- **Visual variety over complexity:** Maps should look different, not necessarily be harder
+- **Playability first:** Every map must be completable and fair
 
-1. **Path adherence** → Verified by unit tests checking position against waypoint path
-2. **Waypoint-to-waypoint movement** → Verified by pathIndex progression logic
-3. **Smooth motion** → Verified by normalized vector movement calculation
-4. **Exact arrival** → Verified by position snap when distance < threshold
-5. **Diagonal paths** → Verified by testing Map 15 specifically
-6. **Orthogonal paths** → Verified by testing Map 9 (Straight Shot)
-7. **No regression** → Verified by maintaining existing special bug behavior code
-8. **Speed consistency** → Verified by preserving speed calculation formula
-9. **Grid sync** → Verified by updating gridPosition on waypoint arrival
-10. **Edge cases** → Verified by specific test cases
-11. **All maps** → Verified by testing representative sample of maps
-12. **Performance** → Verified by profiling or ensuring O(1) calculations per frame
+## When to Ask vs. Assume
+**Ask the user if:**
+- Desired map difficulty distribution is unclear (easy/medium/hard ratio)
+- Specific themes or patterns are requested
+- House position should ever vary (current design: always center)
+- Path lengths should have min/max limits
 
-**Self-Verification Checklist for Downstream Agent:**
-Before marking the task complete, verify:
-- [ ] Code review: Does the movement logic make geometric sense?
-- [ ] Unit tests: Do tests cover the critical cases?
-- [ ] Manual testing: Did you actually run the game and watch bugs?
-- [ ] Multiple maps: Did you test at least 3 different map types?
-- [ ] Bug types: Did you test with both slow and fast bugs?
-- [ ] Code clarity: Is the movement logic simple and understandable?
-- [ ] No regressions: Do flying bugs and burrowers still work?
-- [ ] Documentation: Are any complex decisions explained in comments?
+**Safe to assume:**
+- Follow existing map naming pattern (map21, map22, etc.)
+- Use existing GridPosition/waypoint infrastructure
+- Maintain current safe zone boundaries
+- Keep house at GridPosition(x: 10, y: 7)
+- Mix various path patterns for variety
 
----
+## System Coherence Over Features
+- Don't add dynamic pathfinding (contradicts waypoint system goal)
+- Don't add multiple paths per map (current design: single path)
+- Don't add branching paths (house has one entrance)
+- Don't optimize path expansion (already efficient)
+- Don't change coordinate system (would break everything)
 
-## 7. 🧠 Reasoning Boundaries
-
-**System Coherence:**
-- Follow the existing pattern of entity updates in `GameScene.update()` → entity `update(deltaTime:)` chain
-- Maintain the SpriteKit node hierarchy and coordinate system
-- Preserve the grid-world dual representation pattern used throughout the codebase
-
-**Existing Patterns to Follow:**
-- Use CGPoint for world positions, GridPosition for grid coordinates
-- Update both `position` and `gridPosition` properties
-- Use emoji-prefixed print statements for logging
-- Follow Swift naming conventions (camelCase, descriptive names)
-
-**When to Simplify:**
-- If the current axis-locking logic is complex and error-prone, replace it entirely with simpler vector math
-- Don't add abstraction layers for a single-purpose movement calculation
-- Don't create separate classes/structs for movement when inline calculation suffices
-
-**When Uncertain:**
-- If the fix requires changing map path definitions → Stop and ask
-- If performance testing shows significant slowdown → Stop and discuss optimization
-- If flying bugs are affected → Stop and verify separation of concerns
-- If the fix seems to require major refactoring → Stop and propose simpler alternative
-
-**Preserve Over Rewrite:**
-- Keep the burrowing behavior section (lines 258-270) exactly as-is
-- Keep the path assignment system (setPath method) unchanged
-- Keep the health bar and damage logic untouched
-- Only modify the movement calculation section
+## Pattern Adherence
+**Existing conventions to follow:**
+- Map enum cases: `.map##` format
+- Path methods: `private var map##Path: [GridPosition]`
+- Naming: Descriptive string (e.g., "Winding Road")
+- Path structure: Start at edge, end at house, stay in safe zone
+- Comment style: `// Map ##: Name - Description`
 
 ---
 
-## 8. 📝 Additional Context
+# 📊 Success Metrics
 
-**User's Original Request:**
-"keep bugs on the path at all times"
+**Quantitative:**
+- 10+ new maps added (countable)
+- 0 compilation errors
+- 0 regression bugs
+- 100% of new maps reach house position
+- 100% of new maps stay in safe zone
 
-**Clarifications:**
-No clarification answers were provided (CLARIFICATION_ANSWERS.json was empty), so the prompt assumes:
-- "Path" refers to the predefined road paths defined in MapConfiguration.swift
-- "At all times" means during all movement between spawn and house
-- The issue is a visual/behavioral bug, not a design change request
+**Qualitative:**
+- Maps feel distinct and varied
+- Paths look intentional and well-designed
+- Bugs move smoothly without visual glitches
+- Players can strategically place towers around paths
+- Game remains balanced and fair
 
-**Current Branch:**
-`feature/bugs-stay-on-path` - Already created and checked out
-
-**Recent Changes:**
-Based on git status, recent work includes:
-- Tier progression system modifications
-- GameState and GameScene updates
-- Test fixes related to currency
-
-These changes are unrelated to the bug movement issue and should not be affected by this fix.
-
-**Success Looks Like:**
-A player watching bugs move along the winding road paths should see them follow the brown dirt road tiles precisely, like a train on tracks, with smooth continuous movement but no deviation from the path.
+**Time-to-Completion Estimate:**
+- Map design: 1-2 hours (sketching patterns)
+- Implementation: 2-3 hours (coding waypoints)
+- Testing: 1 hour (validation)
+- Total: 4-6 hours for experienced Swift developer
 
 ---
 
-## 9. 🎓 Learning Notes
+# 🎓 Additional Context
 
-**Why This Matters:**
-Tower defense games rely on predictable enemy movement. If bugs drift off the visible path, it creates confusion about:
-- Where to place towers for optimal coverage
-- Whether the pathfinding is working correctly
-- Game balance (path length affects difficulty)
+## Why Waypoint System Over Dynamic Pathfinding
 
-**Key Insight:**
-Since paths are pre-expanded to include every tile, the solution doesn't need complex pathfinding or curve-following algorithms. Simple point-to-point movement with proper vector math is sufficient.
+**Benefits of predefined waypoint paths:**
+1. **Predictable gameplay:** Players can plan tower placement strategically
+2. **Visual clarity:** Road tiles show exact bug path
+3. **Performance:** No A* computation every frame
+4. **Control:** Designers specify exact path difficulty and length
+5. **Art direction:** Paths can follow aesthetic patterns
 
-**Potential Pitfall:**
-Normalizing very small direction vectors can cause NaN or divide-by-zero errors. The distance check (line 280) prevents this by snapping to the waypoint when close enough, avoiding the need to normalize when distance approaches zero.
+**Trade-offs:**
+- Less emergent gameplay (towers don't affect pathing)
+- Towers can't block paths (by design - roads are unblockable)
+- Flying bugs still use dynamic pathfinding (special case)
+
+## Historical Context
+The recent commit "Complete TASK1: Implement vector-based bug movement for strict path adherence" (f3c04b3) likely addressed diagonal drift issues. The normalized vector approach ensures bugs don't "stair-step" on diagonal segments.
+
+## Future Extensibility
+If more maps are needed later:
+- Pattern established, easy to add more
+- Could add map difficulty ratings for adaptive selection
+- Could implement map packs or themes
+- Could allow user-generated maps (save/load waypoint arrays)
+
+But for this task: focus on the 10 new maps requested.
+
+---
+
+# 📝 Final Notes for Implementing Agent
+
+You are receiving a well-defined task with clear boundaries:
+- **Input:** Existing 20-map system with waypoint infrastructure
+- **Output:** 30+ map system with 10+ new varied layouts
+- **Risk:** Low - adding data, not changing algorithms
+- **Complexity:** Moderate - requires spatial design creativity
+
+**Start by:**
+1. Reading MapConfiguration.swift thoroughly
+2. Sketching 10 map patterns on paper/grid
+3. Implementing maps one at a time
+4. Testing each before moving to next
+
+**Red flags to watch for:**
+- Path doesn't reach house (fix immediately)
+- Path goes out of bounds (move waypoints inward)
+- Bugs get stuck or oscillate (check waypoint spacing)
+- Visual gaps in road (path expansion issue - verify waypoints are connected)
+
+**You've got this!** The infrastructure is solid, you're just adding creative map layouts. Trust the existing system, follow the patterns, and deliver variety and quality.

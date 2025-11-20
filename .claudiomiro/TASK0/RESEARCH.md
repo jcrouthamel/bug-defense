@@ -1,8 +1,8 @@
-# Research for TASK0: Analyze Bug Movement System and Identify Root Cause
+# Research for TASK0
 
 ## Context Reference
 **For tech stack and conventions, see:**
-- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Universal context (Swift/SpriteKit, grid system, conventions)
+- `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/AI_PROMPT.md` - Universal context
 - `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK0/TASK.md` - Task-level context
 - `/Users/jrc/Code/bug-defense/bug-defense-main/.claudiomiro/TASK0/PROMPT.md` - Task-specific context
 
@@ -11,265 +11,190 @@
 ---
 
 ## Task Understanding Summary
-Analyze the current bug movement implementation in `Bug.swift:254-316` to identify the exact root cause of path deviation and establish technical foundation for implementing the fix in TASK1.
+Analyze the existing 20 maps in MapConfiguration.swift to understand patterns, constraints, and implementation details. This foundation will guide the creation of 10 new unique map layouts across parallel tasks (TASK1-TASK10).
 
 ---
 
 ## Files Discovered to Read/Modify
-
-### Primary Analysis Target
-- `Sources/BugDefense/Bug.swift:254-316` - `update(deltaTime:pathfindingGrid:)` method with flawed axis-locking heuristics
-- `Sources/BugDefense/Bug.swift:133-134` - Private properties: `movementPath`, `pathIndex`
-- `Sources/BugDefense/Bug.swift:240-251` - `setPath()` method that initializes bug at first waypoint
-
-### Supporting Context Files
-- `Sources/BugDefense/MapConfiguration.swift:71-103` - `expandPath()` method for path expansion
-- `Sources/BugDefense/MapConfiguration.swift:118-133` - `map1Path` (Winding Road) - example with curves
-- `Sources/BugDefense/MapConfiguration.swift:281-296` - `map8Path` (U-Turns) - example with sharp turns
-- `Sources/BugDefense/MapConfiguration.swift:507-518` - `map15Path` (Diagonal) - example with diagonal segments
-- `Sources/BugDefense/GameConfiguration.swift:67` - `tileSize = 40.0` constant
-- `Sources/BugDefense/GameConfiguration.swift:177-182` - `GridPosition.toWorldPosition()` conversion formula
-- `Sources/BugDefense/GameScene.swift:391` - Bug update call in main game loop
-- `Sources/BugDefense/GameScene.swift:488-504` - `spawnBug()` method showing path assignment
+[ONLY files found during research NOT already in PROMPT.md]
+- `Sources/BugDefense/GameConfiguration.swift:169-194` - GridPosition struct definition with toWorldPosition() helper
+- `Tests/BugDefenseTests/BugMovementTests.swift:1-66` - Test helper patterns and structure for validation
 
 ---
 
 ## Code Patterns Found
+[ONLY new patterns discovered during research]
 
-### Pattern 1: Correct Vector-Based Movement (Hero.swift:110-127)
-**EXCELLENT REFERENCE FOR THE FIX**
+### Map Pattern Taxonomy (Complete Inventory)
+After analyzing all 20 existing maps, they fall into these categories:
 
+**Simple/Straight Paths (Short, Easy):**
+- `MapConfiguration.swift:319-332` - Map 9 "Straight Shot" - 10 waypoints, horizontal only
+- `MapConfiguration.swift:507-518` - Map 15 "Diagonal" - 9 waypoints, diagonal emphasis
+
+**Winding/Serpentine Paths (Medium):**
+- `MapConfiguration.swift:118-137` - Map 1 "Winding Road" - 16 waypoints, classic S-curve
+- `MapConfiguration.swift:140-166` - Map 2 "Zigzag" - 23 waypoints, sharp back-and-forth
+- `MapConfiguration.swift:169-182` - Map 3 "S-Curve" - 10 waypoints, smooth diagonal S
+- `MapConfiguration.swift:242-256` - Map 6 "Long Path" - 11 waypoints, diagonal ascent
+- `MapConfiguration.swift:335-347` - Map 10 "Wave Pattern" - 9 waypoints, wave motion
+
+**Loop/Circular Patterns (Medium):**
+- `MapConfiguration.swift:185-202` - Map 4 "Double Loop" - 14 waypoints, two interlocking circles
+- `MapConfiguration.swift:259-278` - Map 7 "Figure Eight" - 16 waypoints, crossing loops
+- `MapConfiguration.swift:522-541` - Map 16 "Cloverleaf" - 16 waypoints, four-leaf pattern
+- `MapConfiguration.swift:591-611` - Map 19 "Horseshoe" - 17 waypoints, U-shaped arc
+
+**Maze/Complex Paths (Long, Hard):**
+- `MapConfiguration.swift:205-239` - Map 5 "Maze Runner" - 31 waypoints, intricate maze
+- `MapConfiguration.swift:280-316` - Map 8 "U-Turns" - 32 waypoints, multiple sharp U-turns
+- `MapConfiguration.swift:350-412` - Map 11 "Box Spiral" - 62 waypoints, rectangular spiral from edge to center
+- `MapConfiguration.swift:416-457` - Map 12 "Switchback" - 37 waypoints, mountain road zigzag
+- `MapConfiguration.swift:614-631` - Map 20 "Labyrinth" - 14 waypoints, compact complex maze
+
+**Geometric/Themed Paths (Medium):**
+- `MapConfiguration.swift:460-477` - Map 13 "Cross Roads" - 14 waypoints, staircase-like diagonal
+- `MapConfiguration.swift:480-503` - Map 14 "Lightning" - 21 waypoints, jagged lightning bolt
+- `MapConfiguration.swift:544-566` - Map 17 "Snake" - 19 waypoints, slithering up-and-down
+- `MapConfiguration.swift:569-588` - Map 18 "Pyramid" - 16 waypoints, stepped pyramid ascent
+
+### Pattern Gaps Identified (Opportunities for New Maps)
+**Underrepresented patterns:**
+- Reverse/Counter-clockwise spirals (Map 11 is clockwise)
+- Symmetrical patterns (mirrored paths)
+- Dense zigzag patterns (more compressed than Map 2)
+- Circular orbits around house before entering
+- Cross/X-shaped patterns with multiple path intersections
+- Diamond/rhombus shapes
+- Staircase patterns (ascending/descending)
+- Multiple small loops within one path
+- Figure variations (infinity symbol, question mark, etc.)
+- Extreme diagonals (more than Map 15)
+
+**Path length distribution:**
+- Short (8-12 waypoints): Maps 3, 6, 9, 10, 15 → **5 maps (25%)**
+- Medium (13-23 waypoints): Maps 1, 2, 4, 7, 13, 14, 16, 17, 18, 19 → **10 maps (50%)**
+- Long (30+ waypoints): Maps 5, 8, 11, 12, 20 → **5 maps (25%)**
+
+**Recommendation:** Maintain similar distribution in new maps (3 short, 5 medium, 2 long).
+
+### Safe Zone Boundary Validation
+All existing maps respect: **x:1-18, y:1-13**
+
+**Edge cases found:**
+- Closest to edge x=0: Map 1 starts at x=1 ✓
+- Closest to edge x=19: Map 11 reaches x=17 (2 tiles from edge) ✓
+- Closest to edge y=0: Maps 6, 12, 18 start at y=1 ✓
+- Closest to edge y=14: Map 11 reaches y=12 (2 tiles from edge) ✓
+
+**Critical constraint:** No waypoint ever uses x=0, x=19, y=0, or y=14.
+
+### House Position Consistency
+- `MapConfiguration.swift:106-108` - housePosition always returns `GridPosition(x: 10, y: 7)`
+- All 20 maps end at exactly this position
+- No exceptions or variations
+- House is at grid center (20x15 grid, house at 10,7 = center)
+
+### Path Expansion Algorithm Details
+- `MapConfiguration.swift:70-103` - expandPath() implementation
+- **Key insight:** Define only corner/turning waypoints, algorithm fills intermediate tiles
+- Uses integer division: `x = start.x + (dx * step) / steps`
+- Avoids duplicates by checking `position != expandedPath.last`
+- **Pattern to follow:** For a 90-degree turn, only specify the corner point, not every tile
+
+**Example from Map 1:**
 ```swift
-// Hero.swift:110-127 shows CORRECT movement approach
-let dx = targetWorldPos.x - position.x
-let dy = targetWorldPos.y - position.y
-let distance = sqrt(dx * dx + dy * dy)
-
-if distance < 5.0 {
-    // Snap to target when close
-    position = targetWorldPos
-    currentGridPosition = target
-    targetPosition = nil
-} else {
-    // Move toward target using ratio (equivalent to normalization)
-    let moveDistance = moveSpeed * CGFloat(deltaTime)
-    let ratio = min(1.0, moveDistance / distance)
-    position.x += dx * ratio
-    position.y += dy * ratio
-}
+GridPosition(x: 4, y: 3),  // corner
+GridPosition(x: 4, y: 8),  // after vertical run - expandPath fills x:4, y:4-7
 ```
-
-**Why this is correct:**
-- Uses `ratio = moveDistance / distance` which is equivalent to normalization
-- The ratio approach: `position += delta * (moveDistance / distance)` is mathematically identical to `position += normalize(delta) * moveDistance`
-- Always moves directly toward target regardless of direction
-- No axis-locking, no segment-type detection
-- Simple and geometrically correct
-
-**Key Learning:** This is exactly the pattern Bug movement should follow!
-
-### Pattern 2: Distance Calculation Pattern (Multiple Files)
-Found consistent distance calculation pattern across codebase:
-```swift
-let dx = target.x - current.x
-let dy = target.y - current.y
-let distance = sqrt(dx * dx + dy * dy)
-```
-
-Used in:
-- `Bug.swift:276-278` (current implementation)
-- `Hero.swift:113`
-- `DefenseStructure.swift:371-374`
-- `GameScene.swift:714, 792` (using `sqrt(pow(...))` variant)
-- `GameScene.swift:1707, 1729` (using `hypot()` function)
-
-**Pattern variants:** Both `sqrt(dx*dx + dy*dy)` and `hypot(dx, dy)` are used in codebase. Both are correct.
-
-### Pattern 3: Test Structure Pattern (BugDefenseTests.swift:1-100)
-```swift
-import XCTest
-@testable import BugDefense
-
-final class BugDefenseTests: XCTestCase {
-    func testGridPositionConversion() {
-        // Test implementation
-        XCTAssertEqual(actual, expected)
-    }
-
-    @MainActor
-    func testWithMainActor() {
-        // Tests that require MainActor
-    }
-}
-```
-
-**Testing conventions discovered:**
-- Test file location: `Tests/BugDefenseTests/`
-- Test naming: `test{FeatureName}()`
-- XCTest framework with `XCTAssertEqual`, `XCTAssertTrue`, etc.
-- `@MainActor` annotation required for tests involving SpriteKit nodes
-- Tests for grid position conversion exist (lines 6-15)
 
 ---
 
 ## Integration & Impact Analysis
 
 ### Functions/Classes/Components Being Modified:
+**None** - This is a read-only research task. No code modifications.
 
-#### 1. `Bug.update(deltaTime:pathfindingGrid:)` in `Bug.swift:254-316`
-- **Called by:** `GameScene.swift:391` in main game update loop
-  ```swift
-  for bug in bugs {
-      bug.update(deltaTime: deltaTime, pathfindingGrid: pathfindingGrid)
-  }
-  ```
-- **Call frequency:** Every frame for every active bug (high-frequency hot path)
-- **Parameter contract:** `func update(deltaTime: TimeInterval, pathfindingGrid: PathfindingGrid)`
-- **Impact:** Changes to movement logic will affect all ground bugs (ants, beetles, spiders, burrowers). Flying bugs (mosquito, wasp) use different pathfinding.
-- **Breaking changes:** NO - Internal implementation change only. Same method signature, same properties accessed.
+### Key Integration Points Discovered:
+1. **MapType enum (MapConfiguration.swift:5-26)**
+   - CaseIterable protocol auto-includes new cases in `.allCases`
+   - `.random()` method (line 36-38) uses `allCases.randomElement()`
+   - New maps automatically available to random selection without additional code
 
-#### 2. Properties Involved:
-- `position: CGPoint` - SpriteKit node position (world coordinates)
-- `gridPosition: GridPosition` - Current grid tile position
-- `movementPath: [GridPosition]` - Array of waypoints from `setPath()`
-- `pathIndex: Int` - Index of current target waypoint in path
-- `moveSpeed: CGFloat` - Base movement speed from bug type
-- `slowFactor: CGFloat` - Slow multiplier from traps/cards
+2. **roadPath computed property (MapConfiguration.swift:41-68)**
+   - Switch statement must be exhaustive (Swift compiler enforces)
+   - Each new case must map to its path method
+   - expandPath() called automatically on return
 
-**All properties are internal to Bug class - no external dependencies on movement internals.**
+3. **Bug.setPath() (Bug.swift:240-252)**
+   - Accepts `[GridPosition]` array
+   - Bug starts at first waypoint, targets second (pathIndex = 1)
+   - Integration already complete, no changes needed
 
-### Path Assignment Flow:
-1. `GameScene.spawnBug()` calls `MapManager.shared.getCurrentRoadPath()` (line 495)
-2. Road path is already expanded with all intermediate tiles
-3. `bug.setPath(roadPath)` is called (line 500)
-4. `Bug.setPath()` initializes: `movementPath = path`, `pathIndex = 1`, positions bug at first waypoint (lines 240-250)
-5. `Bug.update()` is called every frame to move bug through waypoints
+4. **GameScene.spawnBug() (GameScene.swift:488-504)**
+   - Retrieves path via `MapManager.shared.getCurrentRoadPath()`
+   - Logs waypoint count for debugging
+   - No changes needed for new maps
 
-**No changes needed to path assignment system - paths are correct.**
+### Reusable Components Discovered:
+1. **GridPosition struct (GameConfiguration.swift:169-194)**
+   - Lightweight value type: `Equatable, Hashable, CustomStringConvertible`
+   - Helper method: `toWorldPosition()` converts grid coords to world coords
+   - Helper method: `distance(to:)` calculates Manhattan distance
+   - **Usage:** `GridPosition(x: Int, y: Int)` - use this for all waypoints
 
-### Map Path Structure (Critical Discovery):
-Examined three map types:
-- **Map 1 (Winding Road):** Contains curves - horizontal segments followed by vertical segments
-- **Map 8 (U-Turns):** Contains sharp reversals - excellent test case for drift
-- **Map 15 (Diagonal):** Contains diagonal movement `(2,12)→(3,11)→(4,10)...` where both X and Y change each step
+2. **MapType.expandPath() (MapConfiguration.swift:70-103)**
+   - Static method, reusable for validation
+   - **Do not modify** - working correctly
+   - Use to test new paths manually if needed
 
-**Key Finding:** Map paths are ALREADY defined with every grid tile included. No gaps. The `expandPath()` method would add intermediate tiles if needed, but map definitions already provide dense waypoint arrays.
-
----
-
-## Current Algorithm Deep Analysis
-
-### Algorithm Flow (Bug.swift:254-316):
-
-```
-1. Guard: pathIndex < movementPath.count (line 255)
-2. Handle burrowing (lines 257-270) - UNRELATED to movement issue
-3. Get target waypoint: targetGridPos = movementPath[pathIndex] (line 272)
-4. Convert to world coords: targetWorldPos = targetGridPos.toWorldPosition() (line 273)
-5. Calculate deltas: dx, dy, distance (lines 276-278)
-6. Check if reached waypoint: distance < 2 (line 280)
-   - YES: Snap position, increment pathIndex (lines 282-284)
-   - NO: Calculate movement (lines 289-314)
-7. Movement calculation branches:
-   a. Get previous grid position (line 293)
-   b. Calculate grid deltas: deltaX = abs(targetX - prevX), deltaY = abs(targetY - prevY) (lines 294-295)
-   c. Branch based on grid deltas:
-      - BOTH non-zero (line 298): Diagonal branch - use normalization
-      - deltaX > deltaY (line 304): Horizontal branch - lock Y axis
-      - else (line 309): Vertical branch - lock X axis
-```
-
-### Root Cause Identified: Lines 292-314
-
-**The Fundamental Flaw:**
-
-The algorithm uses **grid coordinate deltas** between waypoints to infer segment type, then applies **world coordinate axis locks**. This creates a geometric mismatch.
-
-**Example failure scenario:**
-
-```
-Bug position: (98, 120) world coords = (2.45, 3.0) grid coords
-Target waypoint: GridPosition(3, 3) = (140, 140) world coords
-Previous waypoint: GridPosition(2, 3)
-
-Grid deltas: deltaX = |3-2| = 1, deltaY = |3-3| = 0
-→ deltaX > deltaY → Horizontal branch selected (lines 304-308)
-
-Horizontal branch executes:
-  position.y = targetWorldPos.y = 140  // SNAP! Forces Y to 140
-
-Problem: Bug was at Y=120, should move smoothly toward Y=140
-Instead: Y instantly jumps to 140, creating visible "pop" or drift
-```
-
-**Why axis-locking fails:**
-1. Grid deltas tell us the waypoint direction (horizontal/vertical/diagonal)
-2. But bug's CURRENT position might not be aligned with that axis yet
-3. Locking an axis assumes bug is already on that axis - this assumption is false when:
-   - Bug is between waypoints due to deltaTime overshooting
-   - Bug has accumulated slight position errors
-   - Bug is rounding a corner and hasn't aligned yet
-
-**The diagonal branch (lines 298-303) is correct** - it uses normalization:
-```swift
-let normalizedDx = dx / distance
-let normalizedDy = dy / distance
-position.x += normalizedDx * moveDistance
-position.y += normalizedDy * moveDistance
-```
-This works because it moves toward target without axis assumptions.
-
-**But diagonal detection is wrong:** It only triggers when BOTH grid deltas are non-zero. This misses cases where:
-- Bug is between waypoints (grid positions are same)
-- Bug needs to correct position errors
-- Bug is in transition between segment types
+3. **MapManager singleton (MapConfiguration.swift:635-664)**
+   - Handles map selection and provides current map data
+   - Methods: `selectMap()`, `selectRandomMap()`, `getCurrentRoadPath()`
+   - **No changes needed** - automatically works with new enum cases
 
 ---
 
-## Path System Verification
+## Test Strategy Discovered
 
-### expandPath() Analysis (MapConfiguration.swift:71-103):
+### Testing Framework
+- **Framework:** XCTest (Swift's built-in testing framework)
+- **Test runner command:** `swift test` or `swift test --filter MapConfigurationTests`
+- **Config location:** Package.swift defines test targets
+
+### Test Structure Pattern
+**Found in:** `Tests/BugDefenseTests/BugMovementTests.swift:1-66`
 
 ```swift
-private static func expandPath(_ waypoints: [GridPosition]) -> [GridPosition] {
-    guard waypoints.count >= 2 else { return waypoints }
-    var expandedPath: [GridPosition] = [waypoints[0]]
+@MainActor
+final class MapConfigurationTests: XCTestCase {
+    // Helper functions first (lines 8-65 pattern)
 
-    for i in 1..<waypoints.count {
-        let start = waypoints[i - 1]
-        let end = waypoints[i]
-        let dx = end.x - start.x
-        let dy = end.y - start.y
-        let steps = max(abs(dx), abs(dy))  // Correctly handles orthogonal and diagonal
-
-        if steps == 0 { continue }
-
-        for step in 1...steps {
-            let x = start.x + (dx * step) / steps  // Linear interpolation
-            let y = start.y + (dy * step) / steps
-            let position = GridPosition(x: x, y: y)
-            if position != expandedPath.last {
-                expandedPath.append(position)
-            }
-        }
+    func testNewMapsPathValidity() {
+        // Test each new map
     }
-    return expandedPath
 }
 ```
 
-**Verification Result: PATH SYSTEM IS CORRECT**
+### Test Helper Patterns
+- `createTestBug(path:bugType:wave:slowFactor:)` - Creates configured Bug instance
+- `runUpdatesUntilCompletion(bug:finalWaypoint:maxIterations:)` - Simulates movement
+- `assertPositionNear(_:_:tolerance:)` - Custom assertion for position validation
 
-- Uses `max(abs(dx), abs(dy))` to calculate steps - handles both orthogonal and diagonal segments correctly
-- Linear interpolation fills in ALL intermediate tiles
-- No gaps possible in expanded path
-- Duplicate prevention ensures clean path array
+### Recommended Tests for New Maps
+**File to create:** `Tests/BugDefenseTests/MapConfigurationTests.swift`
 
-**Tested with map examples:**
-- Map 1: Already dense waypoints, expandPath() would be mostly pass-through
-- Map 8: U-turns work correctly, expansion not needed (already dense)
-- Map 15: Diagonal path `(2,12)→(3,11)→(4,10)` already has every tile
+**Test cases needed:**
+1. `testNewMapsExist()` - Verify MapType.allCases.count >= 30
+2. `testNewMapsPathValidity()` - Validate each new map:
+   - Path has at least 2 waypoints
+   - Last waypoint equals housePosition (10, 7)
+   - All waypoints within safe zone (x:1-18, y:1-13)
+   - First waypoint at grid edge (x=1, x=18, y=1, or y=13)
+3. `testRandomSelectionIncludesNewMaps()` - Verify new maps can be randomly selected
 
-**Conclusion:** The movement drift is NOT caused by path definition. Paths are geometrically correct and complete.
+### Mock/Fixture Patterns
+Not needed for map validation tests - maps are self-contained data structures.
 
 ---
 
@@ -277,161 +202,95 @@ private static func expandPath(_ waypoints: [GridPosition]) -> [GridPosition] {
 
 ### Technical Risks
 
-1. **Normalization Division by Zero**
-   - **Context:** When normalizing direction vector, dividing by distance could cause issues if distance ≈ 0
-   - **Current mitigation:** Line 280 checks `if distance < 2` and snaps position instead of calculating movement
-   - **Risk level:** LOW - Already handled correctly in existing code
-   - **Note:** Keep this distance check in the fix
+1. **Duplicate Pattern Names**
+   - **Likelihood:** Medium
+   - **Impact:** Low (compile-time error, easy to fix)
+   - **Evidence:** Existing maps use unique descriptive names
+   - **Mitigation:** Check all 20 existing names before naming new maps
+   - **Fallback:** Use generic "Map 21" format if creative names are duplicates
 
-2. **Performance of sqrt() Calculation**
-   - **Context:** `sqrt(dx*dx + dy*dy)` is called every frame for every bug
-   - **Assessment:** Already present in current code (line 278), so fix won't add overhead
-   - **Risk level:** LOW - Same computational complexity O(1)
-   - **Note:** Could use `hypot(dx, dy)` as seen elsewhere in codebase, but current approach is fine
+2. **Out-of-Bounds Waypoints**
+   - **Likelihood:** Medium
+   - **Impact:** High (breaks gameplay, bugs may disappear)
+   - **Evidence:** Safe zone is strictly enforced (x:1-18, y:1-13)
+   - **Mitigation:** Validate each waypoint during design phase
+   - **Fallback:** Unit tests will catch violations before runtime
 
-3. **Diagonal Segments on Map 15**
-   - **Context:** Diagonal path requires both X and Y to change simultaneously
-   - **Assessment:** Current diagonal branch (lines 298-303) already handles this correctly with normalization
-   - **Risk level:** LOW - Proposed fix uses same normalization approach for ALL segments
-   - **Mitigation:** Test specifically on Map 15 (Diagonal) during TASK1
+3. **Path Doesn't Reach House**
+   - **Likelihood:** Low
+   - **Impact:** Critical (bugs never reach destination)
+   - **Evidence:** All 20 existing maps end at GridPosition(x: 10, y: 7)
+   - **Mitigation:** Always end path array with `GridPosition(x: 10, y: 7)`
+   - **Fallback:** Unit test will catch this immediately
 
-4. **High-Speed Bugs Overshooting Waypoints**
-   - **Context:** Wasps have speed=120, wave scaling could make them very fast
-   - **Assessment:** Distance check (line 280) prevents overshooting by snapping when close
-   - **Risk level:** LOW - Threshold of `distance < 2` is small enough to prevent visual issues
-   - **Note:** May want to verify threshold is appropriate for highest speeds
+4. **Forgetting to Add Switch Case**
+   - **Likelihood:** Medium
+   - **Impact:** High (compile error, blocks all development)
+   - **Evidence:** Swift requires exhaustive switch statements
+   - **Mitigation:** Swift compiler will error if case missing
+   - **Fallback:** Compiler error message will point to exact issue
+
+5. **Unintentional Pattern Duplication**
+   - **Likelihood:** Medium
+   - **Impact:** Low (reduces variety, but functional)
+   - **Evidence:** 20 existing patterns cover many common shapes
+   - **Mitigation:** Review all maps before implementing, use taxonomy above
+   - **Fallback:** Visual playtesting will reveal similarity
 
 ### Complexity Assessment
-- **Overall complexity:** LOW
-- **Reasoning:**
-  - Problem is localized to lines 292-314 of single method
-  - Solution is simpler than current code (remove branching logic)
-  - No changes to path system, properties, or integration points
-  - Direct reference pattern exists in Hero.swift
+- **Overall complexity:** Low
+- **Reasoning:** Adding data, not changing algorithms. Well-defined constraints. Clear patterns to follow.
+- **Complex areas:**
+  1. **Map design creativity:** Requires spatial visualization and variety
+  2. **Balancing path lengths:** Must maintain difficulty distribution
 
-### Missing Information
-None - all necessary information for analysis has been found:
-- ✅ Current algorithm understood
-- ✅ Root cause identified (axis-locking based on grid deltas)
-- ✅ Reference implementation found (Hero.swift)
-- ✅ Path system verified as correct
-- ✅ Integration points mapped
-- ✅ Test patterns discovered
+### Missing Information / Ambiguities
+None identified - task is well-specified with clear constraints and abundant examples.
 
 ---
 
 ## Execution Strategy Recommendation
 
-**Based on research findings, TASK1 should execute in this order:**
+**Based on research findings, execute in this order:**
 
-### Step 1: Deep Analysis Documentation
-- **Action:** Create `.claudiomiro/TASK0/ANALYSIS.md` with comprehensive root cause analysis
-- **Include:**
-  - Current algorithm flow with line references
-  - Root cause explanation with geometric reasoning
-  - Failure mode examples (curved paths, fast bugs, diagonal segments)
-  - Comparison: current vs. proposed approach
-  - Reference to Hero.swift:110-127 as correct pattern
-- **No code changes:** Analysis only
+### Step 1: Design Phase (Mental/Sketch)
+- Review existing 20 maps visually (reference lines above)
+- Sketch 10 new patterns on paper or grid tool
+- Target pattern gaps: reverse spiral, symmetrical, dense zigzag, orbits, X-pattern, diamond, staircase, multi-loop, infinity, extreme diagonal
+- Ensure variety: 3 short (8-12), 5 medium (13-23), 2 long (30+)
+- Name each map descriptively
 
-### Step 2: Verify Analysis Completeness
-- **Check:** All acceptance criteria from TODO.md are addressed
-- **Verify:**
-  - Root cause clearly documented with line numbers
-  - Geometric explanation includes mathematical reasoning
-  - Path system verified (MapConfiguration.swift:71-103 correct)
-  - Solution approach recommended (vector-based movement)
-  - Test scenarios identified for TASK1
+### Step 2: Implementation Phase
+For each new map (map21 through map30):
+1. **Add enum case** at `MapConfiguration.swift:~26`
+   - Format: `case map21 = "Descriptive Name"`
+2. **Implement path method** after line 632
+   - Format: `private var map21Path: [GridPosition] { return [...] }`
+   - Comment: `// Map 21: Name - Description`
+3. **Add switch case** in roadPath property (~line 64)
+   - Format: `case .map21: basePath = map21Path`
 
-### Recommended Fix Approach for TASK1:
+### Step 3: Validation Phase
+1. **Compile check:** `swift build`
+   - Ensures syntax correctness
+   - Verifies exhaustive switch statement
+2. **Create unit tests:** `Tests/BugDefenseTests/MapConfigurationTests.swift`
+   - Follow pattern from `BugMovementTests.swift:1-10` for structure
+   - Implement tests listed in "Test Strategy" section above
+3. **Run tests:** `swift test --filter MapConfigurationTests`
+4. **Manual playtesting (optional):**
+   - Build and run game
+   - Force map selection to new maps
+   - Verify visual appearance and playability
 
-**Replace lines 292-314 with simple vector-based movement:**
-
-```swift
-// Calculate direction and move toward target
-let moveDistance = moveSpeed * slowFactor * CGFloat(deltaTime)
-
-// Always move directly toward target using normalized direction
-// (Following pattern from Hero.swift:110-127)
-let ratio = min(1.0, moveDistance / distance)
-position.x += dx * ratio
-position.y += dy * ratio
-
-// Note: gridPosition will be updated when waypoint is reached (line 283)
-```
-
-**Rationale:**
-1. Eliminates all segment-type detection logic (lines 292-296)
-2. Removes flawed axis-locking branches (lines 304-314)
-3. Uses same normalization approach for ALL movement
-4. Follows proven pattern from Hero.swift
-5. Simpler code = fewer bugs
-6. Geometrically correct for any path shape
-
-**What to preserve:**
-- Lines 255-270: Guard and burrowing logic (unrelated to drift issue)
-- Lines 272-278: Target waypoint and distance calculation (correct)
-- Lines 280-285: Waypoint snap logic (correct, prevents division by zero)
-- No changes to other methods or files
-
----
-
-## Test Strategy for TASK1
-
-### Testing Framework
-- **Framework:** XCTest
-- **Test command:** `swift test` or `xcodebuild test`
-- **Test location:** `Tests/BugDefenseTests/`
-- **Pattern:** See `BugDefenseTests.swift:1-100` for examples
-
-### Recommended Test Cases for TASK1:
-
-1. **Straight Horizontal Path**
-   - Create bug with path: `[(1,5), (2,5), (3,5), (4,5), (5,5)]`
-   - Update multiple times with fixed deltaTime
-   - Assert: `position.y` remains constant (within small tolerance)
-   - Assert: Bug reaches each waypoint exactly
-
-2. **Straight Vertical Path**
-   - Create bug with path: `[(5,1), (5,2), (5,3), (5,4), (5,5)]`
-   - Update multiple times
-   - Assert: `position.x` remains constant
-   - Assert: Bug reaches each waypoint exactly
-
-3. **L-Shaped Curved Path**
-   - Path: `[(1,3), (2,3), (3,3), (3,4), (3,5)]`
-   - Critical test: Watch behavior at corner waypoint (3,3)
-   - Assert: No sudden position jumps
-   - Assert: Path follows expected route without cutting corner
-
-4. **Diagonal Path (Map 15 style)**
-   - Path: `[(2,12), (3,11), (4,10), (5,9)]`
-   - Assert: Bug moves in straight line through diagonal tiles
-   - Assert: Reaches each waypoint without drift
-
-5. **Fast Bug Test**
-   - Use spider (speed=100) or wasp (speed=120)
-   - Multiple updates with larger deltaTime
-   - Assert: Doesn't skip waypoints
-   - Assert: Snap logic works correctly
-
-6. **Slow Bug Test**
-   - Use beetle (speed=30) with slowFactor=0.1
-   - Very slow movement
-   - Assert: Smooth movement, no jitter
-   - Assert: Still progresses correctly
-
-### Manual Testing for TASK1:
-- Run game and observe bugs on Map 1 (Winding Road)
-- Run game on Map 8 (U-Turns) - critical for corner testing
-- Run game on Map 15 (Diagonal) - verify diagonal movement
-- Watch for visual drift off brown road tiles
-- Test with different wave numbers (speed scaling)
+### Step 4: Documentation Phase
+- Document findings in this RESEARCH.md
+- No additional documentation needed (maps are self-documenting via names)
 
 ---
 
 **Research completed:** 2025-11-20
-**Files analyzed:** 15 source files + 3 map paths
-**Similar patterns found:** 1 (Hero.swift movement - exact reference for fix)
-**Reusable components identified:** 0 (no utilities needed, inline calculation is appropriate)
-**Estimated complexity for TASK1:** LOW (localized fix, clear solution, reference pattern exists)
+**Total similar components found:** 20 existing maps analyzed
+**Total reusable components identified:** 3 (GridPosition, expandPath, MapManager)
+**Estimated complexity:** Low
+**Ready for parallel execution:** Yes - TASK1 through TASK10 can implement maps independently following these patterns

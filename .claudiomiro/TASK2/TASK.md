@@ -1,170 +1,109 @@
-@dependencies [TASK1]
-# Task: Create Unit Tests for Bug Movement Logic
+@dependencies [TASK0]
+# Task: Design and Implement Map 22 (Cloverleaf Pattern)
 
 ## Summary
-Write focused unit tests for the new vector-based movement logic in `Bug.update()`. Tests should verify that bugs reach waypoints exactly, maintain correct speed, and handle edge cases like slow/fast bugs and various path geometries.
-
-**Why this matters:** Unit tests provide fast, repeatable verification that the movement fix works correctly without requiring manual gameplay testing. They catch regressions and validate edge cases that might be missed in visual testing.
+Design and implement a new map with a cloverleaf/four-petal pattern where the path loops around the house in four distinct arcs, creating a decorative and challenging layout with multiple opportunities for tower placement in the center and corners.
 
 ## Context Reference
 **For complete environment context, see:**
-- `../AI_PROMPT.md` - Contains full tech stack (Swift/SpriteKit), testing approach (Jest/supertest pattern but for Swift), grid system (20x15 tiles, 40pt size), and coding conventions
+- `../AI_PROMPT.md` - Contains full tech stack, architecture, coding conventions, and related code patterns
 
 **Task-Specific Context:**
-This task creates new unit tests for the modified Bug movement logic.
+Creating one new map (Map 22) with a cloverleaf pattern to add visual variety and moderate-high difficulty.
 
-### Files This Task Will Create/Modify
-- `Tests/BugDefenseTests/BugMovementTests.swift` (NEW) - Unit tests for movement logic
-- Potentially modify existing test files if they need updates
+### Files This Task Will Modify
+- `Sources/BugDefense/MapConfiguration.swift`:
+  - Add `.map22` enum case (around line 5)
+  - Implement `map22Path` method (after existing map paths)
+  - Add case to `roadPath` switch statement (around line 43)
 
-### Testing Pattern to Follow
-From AI_PROMPT.md Section 5.1 (Testing Guidance):
-**Philosophy:** Test changed code with minimum sufficient evidence. Focus on movement correctness.
+### Patterns to Follow
+- Follow enum naming: `.map22 = "Cloverleaf Loop"`
+- Follow method pattern: `private var map22Path: [GridPosition]`
+- Path structure: Start at grid edge, loop around house, end at GridPosition(x: 10, y: 7)
+- Reference Map 11 (Box Spiral) for complex looping patterns (MapConfiguration.swift:350-412)
 
-**Test Scope:**
-- Create a bug with a simple multi-waypoint path
-- Call `update()` multiple times with fixed deltaTime
-- Verify bug reaches each waypoint exactly
-- Verify position never drifts significantly from expected path
-
-### Test Cases to Implement
-From AI_PROMPT.md Section 5.1:
-1. Straight horizontal path - Y coordinate remains constant
-2. Straight vertical path - X coordinate remains constant
-3. Diagonal path - Moves through intermediate diagonal tiles
-4. Complex curved path - Completes full path correctly
-5. Edge cases - Very slow bugs, very fast bugs, starting at first waypoint
-
-### Integration Points
-- Tests will instantiate `Bug` objects directly
-- Will call `Bug.update(deltaTime:pathfindingGrid:)` with controlled inputs
-- Will verify `Bug.position` and `Bug.gridPosition` properties
-- May need to mock or provide minimal `PathfindingGrid` (can be nil if not used)
+### Design Constraints
+- Stay within safe zone: x:1-18, y:1-13
+- Start at edge position (x=1, x=18, y=1, or y=13)
+- End at house: GridPosition(x: 10, y: 7)
+- Create 4 arc segments forming cloverleaf around center
+- Path length: 50-70 waypoints (moderate-high difficulty)
 
 ## Complexity
 Medium
 
 ## Dependencies
-Depends on: [TASK1]
-Blocks: [TASKΩ]
-Parallel with: [TASK3]
+Depends on: [TASK0]
+Blocks: [TASK11, TASKΩ]
+Parallel with: [TASK1, TASK3, TASK4, TASK5, TASK6, TASK7, TASK8, TASK9, TASK10]
 
 ## Detailed Steps
+1. **Design the path pattern**
+   - Sketch cloverleaf pattern on 20x15 grid with house at center
+   - Plan four arc/loop segments extending from center area
+   - Each petal should reach toward a corner or edge
+   - Path should circulate around house before final approach
 
-1. **Set up the test file structure**
-   - Check existing test structure in `Tests/BugDefenseTests/`
-   - Create `BugMovementTests.swift` following existing test patterns
-   - Import necessary modules (SpriteKit, XCTest, BugDefense)
+2. **Define waypoint corners**
+   - Create arcs using multiple waypoints per petal
+   - Example pattern concept:
+     ```
+     Start edge → arc to top-left → arc to top-right →
+     arc to bottom-right → arc to bottom-left → spiral in to house
+     ```
 
-2. **Create test helper functions**
-   - Helper to create a bug with a specific path
-   - Helper to run multiple update cycles
-   - Helper to verify position is close to expected (within tolerance)
+3. **Implement in MapConfiguration.swift**
+   - Add enum case: `case map22 = "Cloverleaf Loop"`
+   - Create path method with ~15-20 key waypoints
+   - Ensure smooth arcs (use multiple intermediate points for curves)
 
-3. **Implement Test 1: Straight Horizontal Path**
-   - Create bug with path: [(1,5), (2,5), (3,5), (4,5), (5,5)]
-   - Run updates until bug completes path
-   - Assert: position.y remains constant (within 0.1 points)
-   - Assert: bug reaches final waypoint exactly
+4. **Verify path validity**
+   - All coordinates within bounds
+   - No overlap with house position until final waypoint
+   - Visually forms cloverleaf pattern
 
-4. **Implement Test 2: Straight Vertical Path**
-   - Create bug with path: [(5,1), (5,2), (5,3), (5,4), (5,5)]
-   - Run updates until bug completes path
-   - Assert: position.x remains constant (within 0.1 points)
-   - Assert: bug reaches final waypoint exactly
-
-5. **Implement Test 3: Diagonal Path**
-   - Create bug with path: [(2,2), (3,3), (4,4), (5,5)]
-   - Run updates until bug completes path
-   - Assert: bug passes through each waypoint in sequence
-   - Assert: position doesn't deviate from straight line between waypoints
-
-6. **Implement Test 4: L-Shaped Path (Curve)**
-   - Create bug with path: [(1,1), (2,1), (3,1), (3,2), (3,3), (3,4)]
-   - Run updates until bug completes path
-   - Assert: bug makes the turn correctly (reaches corner exactly)
-   - Assert: path completion confirmed
-
-7. **Implement Test 5: Very Slow Bug**
-   - Create bug with slowFactor = 0.1
-   - Use small deltaTime = 0.016 (60 FPS)
-   - Run many update cycles
-   - Assert: bug still reaches waypoints exactly, just takes longer
-
-8. **Implement Test 6: Very Fast Bug**
-   - Create bug with high moveSpeed (wasp-like)
-   - Use normal deltaTime
-   - Assert: bug doesn't skip waypoints (pathIndex increments properly)
-   - Assert: reaches each waypoint despite high speed
-
-9. **Implement Test 7: Starting Exactly at Waypoint**
-   - Create bug positioned exactly at first waypoint
-   - First update should advance to second waypoint
-   - Assert: doesn't get stuck at starting position
-
-10. **Run the tests**
-    - Execute `swift test` to run all tests
-    - Verify all tests pass
-    - Fix any failures
+5. **Test in-game**
+   - Manually select map22 in MapManager
+   - Verify bugs follow smooth arcing path
+   - Check road tiles form continuous cloverleaf
+   - Test tower placement in center and corners
 
 ## Acceptance Criteria
-- [ ] **Test file created**: `BugMovementTests.swift` exists and follows project test structure
-- [ ] **All 7+ test cases implemented**: Horizontal, vertical, diagonal, curved, slow, fast, starting position
-- [ ] **Tests are focused**: Each test verifies specific aspect of movement behavior
-- [ ] **Tests use realistic values**: deltaTime ≈ 0.016 (60 FPS), tile size = 40, reasonable speeds
-- [ ] **Assertions are precise**: Check position within small tolerance (e.g., 0.5 points for drift, exact for waypoint arrival)
-- [ ] **All tests pass**: `swift test` completes with 0 failures
-- [ ] **No flaky tests**: Tests produce consistent results on multiple runs
-- [ ] **Test names are descriptive**: e.g., `testBugMovesAlongStraightHorizontalPathWithoutDrift`
-- [ ] **Edge cases covered**: Slow bugs, fast bugs, various path geometries
-- [ ] **Grid position verified**: Tests check both `position` and `gridPosition` where applicable
+- [ ] Map 22 enum case added to MapType
+- [ ] map22Path method implemented with cloverleaf pattern
+- [ ] Path added to roadPath switch statement
+- [ ] All waypoints within safe zone (x:1-18, y:1-13)
+- [ ] Path starts at edge and ends at GridPosition(x: 10, y: 7)
+- [ ] Pattern creates 4 distinct arc segments (cloverleaf petals)
+- [ ] Code compiles without errors
+- [ ] Bugs navigate path correctly (manual test)
+- [ ] Road tiles render forming cloverleaf shape
+- [ ] Towers can be placed in strategic positions around loops
 
 ## Code Review Checklist
-- [ ] **Test isolation**: Each test is independent (creates own bug instance, doesn't share state)
-- [ ] **Clear arrange-act-assert**: Tests follow AAA pattern clearly
-- [ ] **Meaningful assertions**: Assertions test the actual requirement, not implementation details
-- [ ] **Realistic scenarios**: Test cases reflect actual game conditions
-- [ ] **No hard-coded magic numbers**: Use constants like `GameConfiguration.tileSize`
-- [ ] **Tolerance values justified**: Drift tolerance (0.5 points) is reasonable given tile size (40 points)
-- [ ] **Error messages helpful**: Assertion messages explain what failed and why
-- [ ] **Coverage adequate**: Tests cover the changed lines in Bug.update()
-- [ ] **No over-testing**: Don't test unchanged behavior (flying bugs, burrowing)
-- [ ] **Performance acceptable**: Tests run quickly (< 1 second total)
+- [ ] Enum case follows naming convention
+- [ ] Path method is private and follows pattern
+- [ ] GridPosition coordinates are valid integers
+- [ ] Switch statement updated correctly
+- [ ] Waypoints create smooth arcs (not jagged)
+- [ ] Path is continuous and reaches house
+- [ ] Comments explain cloverleaf structure if helpful
 
 ## Reasoning Trace
+**Design Philosophy:**
+- Cloverleaf pattern provides high visual interest
+- Looping design creates natural tower placement zones
+- Moderate-high difficulty due to longer path length
+- Distinct from linear patterns (zigzag, straight) and simple spirals
 
-**Why unit tests instead of only manual testing?**
-- Fast feedback loop during development
-- Catch regressions when other code changes
-- Verify edge cases that are hard to reproduce manually
-- Provide documentation of expected behavior
-- Can run in CI/CD pipeline
+**Pattern Choice:**
+- Four petals utilize full grid space efficiently
+- Arcs around center create strategic depth
+- Players must defend multiple approach vectors
+- Visually appealing and memorable
 
-**What makes a good movement test?**
-- Controlled inputs (fixed path, fixed deltaTime, fixed speed)
-- Predictable outputs (exact waypoint positions)
-- Isolated from game engine complexity (direct Bug instantiation)
-- Verifiable with simple math (expected position calculable)
-
-**Why test both position and gridPosition?**
-- `position` is the visual world coordinate (what player sees)
-- `gridPosition` is the logical grid coordinate (used for tower range, etc.)
-- Both must stay synchronized for game logic to work
-
-**Tolerance considerations:**
-- Exact match for waypoint arrival (position should snap exactly)
-- Small tolerance for drift detection (0.5 points on 40-point tile = 1.25%)
-- Too tight tolerance = flaky tests from floating-point precision
-- Too loose tolerance = won't catch actual drift
-
-**Why 7+ test cases?**
-From AI_PROMPT.md Section 5.1, these cases cover:
-- Different path geometries (horizontal, vertical, diagonal, curved)
-- Different speeds (slow, fast, normal)
-- Different starting conditions (at waypoint, between waypoints)
-This provides sufficient coverage without exhaustive testing.
-
-**Alternative testing approaches not chosen:**
-- Integration tests: Slower, harder to isolate failures
-- Snapshot tests: Overkill for position verification
-- Property-based tests: Complex setup for simple movement logic
+**Complexity Justification:**
+- More waypoints needed than zigzag to create smooth arcs
+- Path planning requires spatial reasoning
+- Worth the effort for unique visual and gameplay experience

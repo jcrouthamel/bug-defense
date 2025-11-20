@@ -23,6 +23,16 @@ enum MapType: String, CaseIterable {
     case map18 = "Pyramid"
     case map19 = "Horseshoe"
     case map20 = "Labyrinth"
+    case map21 = "Reverse Spiral"
+    case map22 = "Diamond Ring"
+    case map23 = "Staircase"
+    case map24 = "Infinity Loop"
+    case map25 = "Dense Zigzag"
+    case map26 = "Orbital Path"
+    case map27 = "X-Cross"
+    case map28 = "Tornado"
+    case map29 = "Triple Loop"
+    case map30 = "Mountain Peak"
 
     var displayName: String {
         return rawValue
@@ -61,6 +71,16 @@ enum MapType: String, CaseIterable {
         case .map18: basePath = map18Path
         case .map19: basePath = map19Path
         case .map20: basePath = map20Path
+        case .map21: basePath = map21Path
+        case .map22: basePath = map22Path
+        case .map23: basePath = map23Path
+        case .map24: basePath = map24Path
+        case .map25: basePath = map25Path
+        case .map26: basePath = map26Path
+        case .map27: basePath = map27Path
+        case .map28: basePath = map28Path
+        case .map29: basePath = map29Path
+        case .map30: basePath = map30Path
         }
 
         // Expand path to include all intermediate tiles
@@ -626,6 +646,285 @@ enum MapType: String, CaseIterable {
             GridPosition(x: 6, y: 5),
             GridPosition(x: 8, y: 5),
             GridPosition(x: 8, y: 7),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 21: Reverse Spiral - Counter-clockwise spiral inward
+    private var map21Path: [GridPosition] {
+        return [
+            GridPosition(x: 1, y: 7),
+            GridPosition(x: 2, y: 7),
+            GridPosition(x: 3, y: 7),
+            GridPosition(x: 4, y: 7),
+            GridPosition(x: 5, y: 7),
+            GridPosition(x: 6, y: 7),
+            GridPosition(x: 6, y: 8),
+            GridPosition(x: 6, y: 9),
+            GridPosition(x: 6, y: 10),
+            GridPosition(x: 6, y: 11),
+            GridPosition(x: 7, y: 11),
+            GridPosition(x: 8, y: 11),
+            GridPosition(x: 9, y: 11),
+            GridPosition(x: 10, y: 11),
+            GridPosition(x: 11, y: 11),
+            GridPosition(x: 12, y: 11),
+            GridPosition(x: 13, y: 11),
+            GridPosition(x: 14, y: 11),
+            GridPosition(x: 14, y: 10),
+            GridPosition(x: 14, y: 9),
+            GridPosition(x: 14, y: 8),
+            GridPosition(x: 14, y: 7),
+            GridPosition(x: 14, y: 6),
+            GridPosition(x: 14, y: 5),
+            GridPosition(x: 14, y: 4),
+            GridPosition(x: 13, y: 4),
+            GridPosition(x: 12, y: 4),
+            GridPosition(x: 11, y: 4),
+            GridPosition(x: 10, y: 4),
+            GridPosition(x: 9, y: 4),
+            GridPosition(x: 8, y: 4),
+            GridPosition(x: 8, y: 5),
+            GridPosition(x: 8, y: 6),
+            GridPosition(x: 8, y: 7),
+            GridPosition(x: 8, y: 8),
+            GridPosition(x: 8, y: 9),
+            GridPosition(x: 9, y: 9),
+            GridPosition(x: 10, y: 9),
+            GridPosition(x: 11, y: 9),
+            GridPosition(x: 12, y: 9),
+            GridPosition(x: 12, y: 8),
+            GridPosition(x: 12, y: 7),
+            GridPosition(x: 11, y: 7),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 22: Diamond Ring - Diamond shape pattern
+    private var map22Path: [GridPosition] {
+        return [
+            GridPosition(x: 1, y: 7),
+            GridPosition(x: 2, y: 7),
+            GridPosition(x: 3, y: 8),
+            GridPosition(x: 4, y: 9),
+            GridPosition(x: 5, y: 10),
+            GridPosition(x: 6, y: 11),
+            GridPosition(x: 7, y: 11),
+            GridPosition(x: 8, y: 11),
+            GridPosition(x: 9, y: 10),
+            GridPosition(x: 10, y: 9),
+            GridPosition(x: 11, y: 8),
+            GridPosition(x: 11, y: 7),
+            GridPosition(x: 11, y: 6),
+            GridPosition(x: 10, y: 5),
+            GridPosition(x: 9, y: 6),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 23: Staircase - Ascending staircase pattern
+    private var map23Path: [GridPosition] {
+        return [
+            GridPosition(x: 1, y: 2),
+            GridPosition(x: 2, y: 2),
+            GridPosition(x: 3, y: 2),
+            GridPosition(x: 3, y: 3),
+            GridPosition(x: 4, y: 3),
+            GridPosition(x: 5, y: 3),
+            GridPosition(x: 5, y: 4),
+            GridPosition(x: 6, y: 4),
+            GridPosition(x: 7, y: 4),
+            GridPosition(x: 7, y: 5),
+            GridPosition(x: 8, y: 5),
+            GridPosition(x: 9, y: 5),
+            GridPosition(x: 9, y: 6),
+            GridPosition(x: 10, y: 6),
+            GridPosition(x: 11, y: 6),
+            GridPosition(x: 11, y: 7),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 24: Infinity Loop - Figure-8 infinity symbol
+    private var map24Path: [GridPosition] {
+        return [
+            GridPosition(x: 1, y: 5),
+            GridPosition(x: 2, y: 5),
+            GridPosition(x: 3, y: 5),
+            GridPosition(x: 4, y: 5),
+            GridPosition(x: 4, y: 6),
+            GridPosition(x: 5, y: 7),
+            GridPosition(x: 6, y: 8),
+            GridPosition(x: 7, y: 9),
+            GridPosition(x: 8, y: 9),
+            GridPosition(x: 9, y: 9),
+            GridPosition(x: 9, y: 8),
+            GridPosition(x: 9, y: 7),
+            GridPosition(x: 8, y: 7),
+            GridPosition(x: 7, y: 7),
+            GridPosition(x: 6, y: 6),
+            GridPosition(x: 5, y: 5),
+            GridPosition(x: 6, y: 4),
+            GridPosition(x: 7, y: 5),
+            GridPosition(x: 8, y: 6),
+            GridPosition(x: 9, y: 6),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 25: Dense Zigzag - Compressed zigzag
+    private var map25Path: [GridPosition] {
+        return [
+            GridPosition(x: 1, y: 4),
+            GridPosition(x: 2, y: 4),
+            GridPosition(x: 2, y: 5),
+            GridPosition(x: 3, y: 5),
+            GridPosition(x: 3, y: 6),
+            GridPosition(x: 4, y: 6),
+            GridPosition(x: 4, y: 7),
+            GridPosition(x: 5, y: 7),
+            GridPosition(x: 5, y: 8),
+            GridPosition(x: 6, y: 8),
+            GridPosition(x: 7, y: 8),
+            GridPosition(x: 8, y: 8),
+            GridPosition(x: 9, y: 8),
+            GridPosition(x: 10, y: 8),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 26: Orbital Path - Circular orbit before entering house
+    private var map26Path: [GridPosition] {
+        return [
+            GridPosition(x: 2, y: 13),
+            GridPosition(x: 3, y: 13),
+            GridPosition(x: 4, y: 13),
+            GridPosition(x: 5, y: 12),
+            GridPosition(x: 6, y: 11),
+            GridPosition(x: 7, y: 10),
+            GridPosition(x: 8, y: 9),
+            GridPosition(x: 9, y: 9),
+            GridPosition(x: 10, y: 9),
+            GridPosition(x: 11, y: 9),
+            GridPosition(x: 12, y: 9),
+            GridPosition(x: 13, y: 9),
+            GridPosition(x: 14, y: 9),
+            GridPosition(x: 14, y: 8),
+            GridPosition(x: 14, y: 7),
+            GridPosition(x: 14, y: 6),
+            GridPosition(x: 13, y: 6),
+            GridPosition(x: 12, y: 6),
+            GridPosition(x: 11, y: 6),
+            GridPosition(x: 10, y: 6),
+            GridPosition(x: 9, y: 7),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 27: X-Cross - X-shaped diagonal pattern
+    private var map27Path: [GridPosition] {
+        return [
+            GridPosition(x: 1, y: 2),
+            GridPosition(x: 2, y: 2),
+            GridPosition(x: 3, y: 3),
+            GridPosition(x: 4, y: 4),
+            GridPosition(x: 5, y: 5),
+            GridPosition(x: 6, y: 6),
+            GridPosition(x: 7, y: 7),
+            GridPosition(x: 8, y: 8),
+            GridPosition(x: 9, y: 9),
+            GridPosition(x: 10, y: 9),
+            GridPosition(x: 10, y: 8),
+            GridPosition(x: 9, y: 7),
+            GridPosition(x: 8, y: 6),
+            GridPosition(x: 9, y: 6),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 28: Tornado - Tight spiral expanding outward
+    private var map28Path: [GridPosition] {
+        return [
+            GridPosition(x: 10, y: 1),
+            GridPosition(x: 10, y: 2),
+            GridPosition(x: 11, y: 2),
+            GridPosition(x: 11, y: 3),
+            GridPosition(x: 10, y: 3),
+            GridPosition(x: 9, y: 3),
+            GridPosition(x: 9, y: 2),
+            GridPosition(x: 8, y: 2),
+            GridPosition(x: 8, y: 3),
+            GridPosition(x: 8, y: 4),
+            GridPosition(x: 9, y: 4),
+            GridPosition(x: 10, y: 4),
+            GridPosition(x: 11, y: 4),
+            GridPosition(x: 12, y: 4),
+            GridPosition(x: 12, y: 5),
+            GridPosition(x: 12, y: 6),
+            GridPosition(x: 11, y: 6),
+            GridPosition(x: 10, y: 6),
+            GridPosition(x: 9, y: 6),
+            GridPosition(x: 8, y: 6),
+            GridPosition(x: 7, y: 6),
+            GridPosition(x: 7, y: 5),
+            GridPosition(x: 6, y: 5),
+            GridPosition(x: 6, y: 6),
+            GridPosition(x: 6, y: 7),
+            GridPosition(x: 6, y: 8),
+            GridPosition(x: 7, y: 8),
+            GridPosition(x: 8, y: 8),
+            GridPosition(x: 9, y: 8),
+            GridPosition(x: 10, y: 8),
+            GridPosition(x: 11, y: 8),
+            GridPosition(x: 12, y: 8),
+            GridPosition(x: 13, y: 8),
+            GridPosition(x: 13, y: 9),
+            GridPosition(x: 13, y: 10),
+            GridPosition(x: 12, y: 10),
+            GridPosition(x: 11, y: 10),
+            GridPosition(x: 10, y: 10),
+            GridPosition(x: 9, y: 10),
+            GridPosition(x: 9, y: 9),
+            GridPosition(x: 10, y: 9),
+            GridPosition(x: 10, y: 8),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 29: Triple Loop - Three small connected loops
+    private var map29Path: [GridPosition] {
+        return [
+            GridPosition(x: 1, y: 7),
+            GridPosition(x: 2, y: 7),
+            GridPosition(x: 3, y: 7),
+            GridPosition(x: 3, y: 8),
+            GridPosition(x: 4, y: 8),
+            GridPosition(x: 4, y: 7),
+            GridPosition(x: 5, y: 7),
+            GridPosition(x: 5, y: 6),
+            GridPosition(x: 6, y: 6),
+            GridPosition(x: 6, y: 7),
+            GridPosition(x: 7, y: 7),
+            GridPosition(x: 8, y: 7),
+            GridPosition(x: 8, y: 8),
+            GridPosition(x: 9, y: 8),
+            GridPosition(x: 9, y: 7),
+            GridPosition(x: 10, y: 7)
+        ]
+    }
+
+    // Map 30: Mountain Peak - Triangle/peak pattern
+    private var map30Path: [GridPosition] {
+        return [
+            GridPosition(x: 2, y: 13),
+            GridPosition(x: 3, y: 12),
+            GridPosition(x: 4, y: 11),
+            GridPosition(x: 5, y: 10),
+            GridPosition(x: 6, y: 9),
+            GridPosition(x: 7, y: 8),
+            GridPosition(x: 8, y: 7),
+            GridPosition(x: 9, y: 6),
+            GridPosition(x: 10, y: 6),
             GridPosition(x: 10, y: 7)
         ]
     }
