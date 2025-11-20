@@ -27,18 +27,18 @@ final class BugDefenseTests: XCTestCase {
 
         XCTAssertEqual(manager.currentState, .building)
         XCTAssertEqual(manager.currentWave, 0)
-        XCTAssertEqual(manager.currency, 100)
+        XCTAssertEqual(manager.currency, 500)  // Updated to match GameConfiguration.startingCurrency
         XCTAssertEqual(manager.houseHealth, 100)
 
         // Test currency operations
         manager.addCurrency(50)
-        XCTAssertEqual(manager.currency, 150)
+        XCTAssertEqual(manager.currency, 550)  // 500 + 50
 
         XCTAssertTrue(manager.spendCurrency(50))
-        XCTAssertEqual(manager.currency, 100)
+        XCTAssertEqual(manager.currency, 500)  // 550 - 50
 
-        XCTAssertFalse(manager.spendCurrency(200))
-        XCTAssertEqual(manager.currency, 100)
+        XCTAssertFalse(manager.spendCurrency(600))  // Cannot spend more than 500
+        XCTAssertEqual(manager.currency, 500)  // Should remain unchanged
     }
 
     func testPathfinding() {
